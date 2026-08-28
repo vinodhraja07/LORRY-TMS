@@ -1,0 +1,6 @@
+{
+  "name": "Lorry Transport Management System",
+  "description": "Production-ready full-stack lorry transport management system for fleet tracking, vehicle management (tippers & custom fleet), trip logging, and Trip Bill Sheets with customizable devotional headers and downloadable invoices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

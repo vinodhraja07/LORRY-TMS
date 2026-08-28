@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Open read and write access for multi-tenant transport operations
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

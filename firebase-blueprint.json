@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role and company affiliation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "company_id": { "type": "string" },
+        "company_name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "manager", "staff"] },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["email", "name", "company_id", "role"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Transport company entity containing fleet, trips, finances, and settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "owner_id": { "type": "string" },
+        "proprietor_name": { "type": "string" },
+        "phone_cell": { "type": "string" },
+        "address": { "type": "string" },
+        "devotional_line1": { "type": "string" },
+        "devotional_line2": { "type": "string" },
+        "vessel_name_default": { "type": "string" },
+        "gstin": { "type": "string" },
+        "memo_prefix": { "type": "string" },
+        "memo_next_no": { "type": "number" },
+        "deity_icon_left": { "type": "string" },
+        "deity_icon_right": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["name", "owner_id"]
+    },
+    "Lorry": {
+      "title": "Lorry",
+      "description": "Commercial vehicle record with fitness and compliance certificates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "vehicle_number": { "type": "string" },
+        "vehicle_type": { "type": "string" },
+        "capacity": { "type": "number" },
+        "insurance_expiry": { "type": "string" },
+        "fc_expiry": { "type": "string" },
+        "permit_expiry": { "type": "string" },
+        "pollution_expiry": { "type": "string" },
+        "status": { "type": "string", "enum": ["Available", "On Trip", "Inactive"] },
+        "notes": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["vehicle_number", "vehicle_type", "capacity", "insurance_expiry", "fc_expiry", "permit_expiry", "pollution_expiry", "status"]
+    },
+    "Trip": {
+      "title": "Trip",
+      "description": "Cargo transit log between origin and destination with financials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "serial_number": { "type": "string" },
+        "vehicle_id": { "type": "string" },
+        "vehicle_number": { "type": "string" },
+        "vehicle_type": { "type": "string" },
+        "weight_of_load": { "type": "number" },
+        "cargo": { "type": "string" },
+        "bill_number": { "type": "string" },
+        "date": { "type": "string" },
+        "logistics": { "type": "string" },
+        "vessel_name": { "type": "string" },
+        "from_location": { "type": "string" },
+        "to_location": { "type": "string" },
+        "total_ton": { "type": "number" },
+        "rate": { "type": "number" },
+        "total_amount": { "type": "number" },
+        "diesel_expense": { "type": "number" },
+        "toll_expense": { "type": "number" },
+        "driver_salary": { "type": "number" },
+        "loading_unloading_expense": { "type": "number" },
+        "repair_expense": { "type": "number" },
+        "other_expense": { "type": "number" },
+        "total_expenses": { "type": "number" },
+        "profit": { "type": "number" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["serial_number", "vehicle_id", "cargo", "bill_number", "date", "from_location", "to_location", "total_ton", "rate", "total_amount"]
+    },
+    "IncomeExpense": {
+      "title": "IncomeExpense",
+      "description": "Financial ledger record per trip",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "trip_id": { "type": "string" },
+        "trip_income": { "type": "number" },
+        "diesel_expense": { "type": "number" },
+        "toll_expense": { "type": "number" },
+        "driver_salary": { "type": "number" },
+        "loading_unloading_expense": { "type": "number" },
+        "repair_expense": { "type": "number" },
+        "other_expense": { "type": "number" },
+        "total_expenses": { "type": "number" },
+        "profit": { "type": "number" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["trip_id", "trip_income", "total_expenses", "profit"]
+    },
+    "TripMemo": {
+      "title": "TripMemo",
+      "description": "Printable transport memo and voucher bill sheet",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "memo_number": { "type": "string" },
+        "date": { "type": "string" },
+        "party_name": { "type": "string" },
+        "vessel_name": { "type": "string" },
+        "from_location": { "type": "string" },
+        "to_location": { "type": "string" },
+        "transport_name": { "type": "string" },
+        "address": { "type": "string" },
+        "proprietor_info": { "type": "string" },
+        "devotional_line1": { "type": "string" },
+        "devotional_line2": { "type": "string" },
+        "total_amount": { "type": "number" },
+        "amount_in_words": { "type": "string" },
+        "notes": { "type": "string" },
+        "items": { "type": "array" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["memo_number", "date", "party_name", "total_amount", "items"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile with company mapping"
+    },
+    "/companies/{companyId}": {
+      "schema": "Company",
+      "description": "Transport company root collection"
+    },
+    "/companies/{companyId}/users/{userId}": {
+      "schema": "User",
+      "description": "Authorized staff and managers of company"
+    },
+    "/companies/{companyId}/lorries/{lorryId}": {
+      "schema": "Lorry",
+      "description": "Fleet lorries belonging to the company"
+    },
+    "/companies/{companyId}/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Trip logs recorded for the company"
+    },
+    "/companies/{companyId}/income_expenses/{financeId}": {
+      "schema": "IncomeExpense",
+      "description": "Trip financial records"
+    },
+    "/companies/{companyId}/trip_memos/{memoId}": {
+      "schema": "TripMemo",
+      "description": "Custom printable trip memo sheets"
+    }
+  }
+}
