@@ -602,3 +602,94 @@ authRouter.post("/logout", (req: Request, res: Response): void => {
   res.json({ message: "Logged out successfully" });
 });
 
+// Real SMS Dispatcher (Supports Twilio, Fast2SMS, or Instant Gateway)
+authRouter.post("/send-sms", async (req: Request, res: Response): Promise<void> => {
+  const { phone, code, message } = req.body || {};
+  const targetPhone = (phone || "").toString().trim();
+  const verificationCode = (code || "").toString().trim();
+  const smsBody = message || `SRI TRANSPORT: Your 6-digit password reset verification code is ${verificationCode}. Valid for 15 mins. Do not share this code.`;
+
+  if (!targetPhone) {
+    res.status(400).json({ error: "Phone number is required" });
+    return;
+  }
+
+  const cleanDigits = targetPhone.replace(/\D/g, "");
+  let delivered = false;
+  let providerUsed = "simulated";
+  let deliveryError: string | null = null;
+
+  // 1. Check for Fast2SMS API Key (Popular Indian SMS Gateway)
+  if (process.env.FAST2SMS_API_KEY && cleanDigits.length >= 10) {
+    try {
+      const tenDigits = cleanDigits.slice(-10);
+      const f2sRes = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method: "POST",
+        headers: {
+          authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          route: "otp",
+          variables_values: verificationCode,
+          numbers: tenDigits,
+        }),
+      });
+      const f2sData: any = await f2sRes.json();
+      if (f2sData?.return === true) {
+        delivered = true;
+        providerUsed = "fast2sms";
+      }
+    } catch (e: any) {
+      deliveryError = e?.message || "Fast2SMS dispatch error";
+    }
+  }
+
+  // 2. Check for Twilio API Credentials
+  if (!delivered && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+    try {
+      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
+      const formattedTo = cleanDigits.length === 10 ? `+91${cleanDigits}` : targetPhone.startsWith("+") ? targetPhone : `+${cleanDigits}`;
+
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+      const authHeader = "Basic " + Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64");
+
+      const params = new URLSearchParams();
+      params.append("To", formattedTo);
+      params.append("From", twilioFrom);
+      params.append("Body", smsBody);
+
+      const twilioRes = await fetch(twilioUrl, {
+        method: "POST",
+        headers: {
+          Authorization: authHeader,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      });
+
+      if (twilioRes.ok) {
+        delivered = true;
+        providerUsed = "twilio";
+      }
+    } catch (e: any) {
+      deliveryError = e?.message || "Twilio dispatch error";
+    }
+  }
+
+  console.log(`[SMS Gateway] Dispatched OTP ${verificationCode} to ${targetPhone} via ${providerUsed}`);
+
+  res.json({
+    success: true,
+    phone: targetPhone,
+    delivered,
+    provider: providerUsed,
+    error: deliveryError,
+    message: delivered
+      ? `SMS successfully dispatched to mobile ${targetPhone}`
+      : `SMS prepared for mobile ${targetPhone}.`,
+  });
+});
+

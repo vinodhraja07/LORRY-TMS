@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (credentials: { username?: string; email?: string; password: string }) => Promise<void>;
-  register: (userData: { username?: string; email?: string; password: string; name: string; company_name: string }) => Promise<{ user: User; message: string }>;
+  login: (credentials: { username?: string; email?: string; phone?: string; password: string }) => Promise<void>;
+  register: (userData: { username?: string; phone?: string; email?: string; password: string; name: string; company_name: string }) => Promise<{ user: User; message: string }>;
   updateProfile: (data: Partial<User>) => Promise<User>;
   deleteAccount: () => Promise<void>;
   logout: () => Promise<void>;
@@ -45,20 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initSession();
   }, []);
 
-  const login = async (credentials: { username?: string; email?: string; password: string }) => {
+  const login = async (credentials: { username?: string; email?: string; phone?: string; password: string }) => {
     const res = await firebaseService.loginUser(credentials);
     setUser(res.user);
     setStoredUser(res.user);
     setStoredToken(res.token);
   };
 
-  const register = async (userData: { username?: string; email?: string; password: string; name: string; company_name: string }) => {
-    const res = await firebaseService.registerUser({
-      email: userData.email || userData.username || "",
-      password: userData.password,
-      name: userData.name,
-      company_name: userData.company_name,
-    });
+  const register = async (userData: { username?: string; phone?: string; email?: string; password: string; name: string; company_name: string }) => {
+    const res = await firebaseService.registerUser(userData);
     setUser(res.user);
     setStoredUser(res.user);
     setStoredToken(res.token);

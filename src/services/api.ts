@@ -20,35 +20,39 @@ import {
 export { getStoredToken, setStoredToken, removeStoredToken, getStoredUser, setStoredUser };
 
 export const api = {
-  // Auth (Dedicated Email and Password)
-  validateGoogleEmail: async (_email: string) => {
-    return { valid: true };
-  },
-  login: async (credentials: { username?: string; email?: string; password: string }) => {
+  // Auth (Dedicated Username, Phone & Password)
+  login: async (credentials: { username?: string; email?: string; phone?: string; password: string }) => {
     return firebaseService.loginUser(credentials);
   },
-  googleLookup: async (_email: string) => {
-    return { exists: false };
+  register: async (userData: { username?: string; phone?: string; email?: string; password: string; name: string; company_name: string }) => {
+    return firebaseService.registerUser(userData);
   },
-  googleLogin: async (profile: { email: string; name?: string; company_name?: string }) => {
-    return firebaseService.loginUser({ email: profile.email, password: "DefaultPassword" });
+  forgotPassword: async (data: { phone?: string; email?: string; username?: string } | string) => {
+    const res = await firebaseService.forgotPassword(data);
+    // Also trigger server SMS gateway dispatch
+    try {
+      await fetch("/api/auth/send-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: res.phone, code: res.code }),
+      });
+    } catch (e) {
+      // ignore network errors for sms dispatch
+    }
+    return res;
   },
-  register: async (userData: { username?: string; email?: string; password: string; name: string; company_name: string }) => {
-    const email = userData.email || userData.username || "";
-    return firebaseService.registerUser({
-      email,
-      password: userData.password,
-      name: userData.name,
-      company_name: userData.company_name,
+  sendSms: async (data: { phone: string; code: string; message?: string }) => {
+    const res = await fetch("/api/auth/send-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
+    return res.json();
   },
-  forgotPassword: async (data: { email: string }) => {
-    return firebaseService.forgotPassword(data.email);
-  },
-  verifyResetCode: async (data: { email: string; code: string }) => {
+  verifyResetCode: async (data: { phone?: string; email?: string; username?: string; code: string }) => {
     return firebaseService.verifyResetCode(data);
   },
-  resetPassword: async (data: { email: string; code: string; newPassword: string }) => {
+  resetPassword: async (data: { phone?: string; email?: string; username?: string; code: string; newPassword: string }) => {
     return firebaseService.resetPassword(data);
   },
   getMe: async () => {

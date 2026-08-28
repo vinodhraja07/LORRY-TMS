@@ -174,32 +174,64 @@ export async function getCurrentCompanyId(): Promise<string> {
 
 export const firebaseService = {
   // ==========================================
-  // Dedicated Email & Password Auth Operations
+  // Dedicated Username, Phone & Password Auth Operations
   // ==========================================
 
   registerUser: async (userData: {
-    email: string;
+    username?: string;
+    phone?: string;
+    email?: string;
     password: string;
     name: string;
     company_name: string;
   }): Promise<{ user: User; message: string; token: string }> => {
-    const emailClean = userData.email.trim().toLowerCase();
+    const usernameClean = (userData.username || userData.email || "").trim().toLowerCase();
+    const phoneClean = (userData.phone || "").trim();
+    const emailClean = (userData.email || (usernameClean.includes("@") ? usernameClean : `${usernameClean}@lorrytms.local`)).trim().toLowerCase();
     const passwordClean = userData.password.trim();
     const nameClean = userData.name.trim();
     const companyClean = userData.company_name.trim();
 
-    if (!emailClean) throw new Error("Email address is required.");
-    if (!passwordClean || passwordClean.length < 4) throw new Error("Password must be at least 4 characters long.");
     if (!nameClean) throw new Error("Your full name is required.");
     if (!companyClean) throw new Error("Transport company name is required.");
+    if (!usernameClean) throw new Error("Username is required.");
+    if (usernameClean.length < 3) throw new Error("Username must be at least 3 characters long.");
+    if (!phoneClean) throw new Error("Phone number is required for password recovery.");
+    
+    // Validate phone number has at least 7 digits
+    const phoneDigits = phoneClean.replace(/\D/g, "");
+    if (phoneDigits.length < 7) {
+      throw new Error("Please enter a valid phone number (at least 7-10 digits).");
+    }
 
-    // Check if user with email already exists in Firestore
+    if (!passwordClean || passwordClean.length < 4) {
+      throw new Error("Password must be at least 4 characters long.");
+    }
+
+    // Check if user with username or phone already exists in Firestore
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", emailClean));
-    const existingSnap = await getDocs(q);
+    const allUsersSnap = await getDocs(usersRef);
+    const existing = allUsersSnap.docs.find((docSnap) => {
+      const u = docSnap.data();
+      const uName = (u.username || "").toLowerCase();
+      const uPhone = (u.phone || "").replace(/\D/g, "");
+      const uEmail = (u.email || "").toLowerCase();
+      return (
+        uName === usernameClean ||
+        (phoneDigits && uPhone === phoneDigits) ||
+        (emailClean && uEmail === emailClean)
+      );
+    });
 
-    if (!existingSnap.empty) {
-      throw new Error(`An account with email ${emailClean} already exists. Please sign in.`);
+    if (existing) {
+      const uData = existing.data();
+      if ((uData.username || "").toLowerCase() === usernameClean) {
+        throw new Error(`Username '${usernameClean}' is already taken. Please choose another username.`);
+      }
+      if ((uData.phone || "").replace(/\D/g, "") === phoneDigits) {
+        throw new Error(`An account with phone number ${phoneClean} already exists. Please sign in.`);
+      }
+      throw new Error(`An account with this username already exists. Please sign in.`);
     }
 
     const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -214,7 +246,7 @@ export const firebaseService = {
       name: companyClean,
       owner_id: userId,
       proprietor_name: `Prop. ${nameClean}`,
-      phone_cell: "Cell : 98949 03533",
+      phone_cell: `Cell : ${phoneClean}`,
       address: "122E, Polepettai, Ettayapuram Road, Thoothukudi - 628002",
       devotional_line1: "குருவே சரணம்",
       devotional_line2: "ஸ்ரீ பூலுடையார் சாஸ்தா துணை",
@@ -232,14 +264,15 @@ export const firebaseService = {
     // 2. Create User Profile Doc in Cloud Firestore
     const userProfile: User = {
       id: userId,
-      username: emailClean,
+      username: usernameClean,
+      phone: phoneClean,
       email: emailClean,
       name: nameClean,
       company_name: companyClean,
       company_id: companyId,
       role: "admin",
       proprietor_name: `Prop. ${nameClean}`,
-      phone_cell: "Cell : 98949 03533",
+      phone_cell: `Cell : ${phoneClean}`,
       address: "122E, Polepettai, Ettayapuram Road, Thoothukudi - 628002",
       devotional_line1: "குருவே சரணம்",
       devotional_line2: "ஸ்ரீ பூலுடையார் சாஸ்தா துணை",
@@ -271,37 +304,45 @@ export const firebaseService = {
   },
 
   loginUser: async (credentials: {
-    email?: string;
     username?: string;
+    email?: string;
+    phone?: string;
     password: string;
   }): Promise<{ user: User; token: string }> => {
-    const emailClean = (credentials.email || credentials.username || "").trim().toLowerCase();
+    const inputIdentifier = (credentials.username || credentials.email || credentials.phone || "").trim();
+    const identifierClean = inputIdentifier.toLowerCase();
+    const inputDigits = inputIdentifier.replace(/\D/g, "");
     const passwordClean = (credentials.password || "").trim();
 
-    if (!emailClean) throw new Error("Email address is required.");
+    if (!inputIdentifier) throw new Error("Username is required.");
     if (!passwordClean) throw new Error("Password is required.");
 
     const passwordHashed = await hashPassword(passwordClean);
 
-    // Query user by email
+    // Query user by username, email or phone
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", emailClean));
-    const snap = await getDocs(q);
+    const snap = await getDocs(usersRef);
 
     let matchedDoc: any = null;
-    if (!snap.empty) {
-      matchedDoc = snap.docs[0];
-    } else {
-      // Also try querying by username if different
-      const qUser = query(usersRef, where("username", "==", emailClean));
-      const snapUser = await getDocs(qUser);
-      if (!snapUser.empty) {
-        matchedDoc = snapUser.docs[0];
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const uName = (data.username || "").toLowerCase();
+      const uEmail = (data.email || "").toLowerCase();
+      const uPhone = (data.phone || "").replace(/\D/g, "");
+      const uPhoneCell = (data.phone_cell || "").replace(/\D/g, "");
+
+      if (
+        uName === identifierClean ||
+        uEmail === identifierClean ||
+        (inputDigits.length >= 7 && (uPhone === inputDigits || uPhoneCell.includes(inputDigits) || inputDigits.includes(uPhone)))
+      ) {
+        matchedDoc = docSnap;
+        break;
       }
     }
 
     if (!matchedDoc) {
-      throw new Error("Invalid email or password. No registered account found with this email.");
+      throw new Error("Invalid username or password. No registered account found with this username.");
     }
 
     const userData = matchedDoc.data();
@@ -311,7 +352,7 @@ export const firebaseService = {
       userData.password === passwordClean;
 
     if (!isPasswordValid) {
-      throw new Error("Invalid email or password. Please check your password and try again.");
+      throw new Error("Invalid password. Please check your password and try again.");
     }
 
     // Merge with company settings
@@ -328,14 +369,15 @@ export const firebaseService = {
 
     const userProfile: User = {
       id: matchedDoc.id,
-      username: userData.username || userData.email,
+      username: userData.username || userData.email || inputIdentifier,
+      phone: userData.phone || companyData.phone || null,
       email: userData.email,
       name: userData.name || "Owner",
       company_name: companyData.name || userData.company_name || "Sri Transport",
       company_id: companyId,
       role: userData.role || "admin",
       proprietor_name: companyData.proprietor_name || userData.proprietor_name || `Prop. ${userData.name}`,
-      phone_cell: companyData.phone_cell || userData.phone_cell || "Cell : 98949 03533",
+      phone_cell: companyData.phone_cell || userData.phone_cell || (userData.phone ? `Cell : ${userData.phone}` : "Cell : 98949 03533"),
       address: companyData.address || userData.address || "122E, Polepettai, Ettayapuram Road, Thoothukudi - 628002",
       devotional_line1: companyData.devotional_line1 || userData.devotional_line1 || "குருவே சரணம்",
       devotional_line2: companyData.devotional_line2 || userData.devotional_line2 || "ஸ்ரீ பூலுடையார் சாஸ்தா துணை",
@@ -357,17 +399,40 @@ export const firebaseService = {
     };
   },
 
-  forgotPassword: async (email: string): Promise<{ message: string; code: string }> => {
-    const emailClean = email.trim().toLowerCase();
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", emailClean));
-    const snap = await getDocs(q);
+  forgotPassword: async (input: string | { phone?: string; email?: string; username?: string }): Promise<{ message: string; code: string; phone: string; username: string }> => {
+    const rawInput = typeof input === "string" ? input : (input.phone || input.username || input.email || "");
+    const inputClean = rawInput.trim().toLowerCase();
+    const inputDigits = rawInput.replace(/\D/g, "");
 
-    if (snap.empty) {
-      throw new Error("No account found with this email address.");
+    if (!inputClean && !inputDigits) {
+      throw new Error("Please enter your registered phone number.");
     }
 
-    const userDoc = snap.docs[0];
+    const usersRef = collection(db, "users");
+    const snap = await getDocs(usersRef);
+
+    let userDoc: any = null;
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const uPhone = (data.phone || "").replace(/\D/g, "");
+      const uPhoneCell = (data.phone_cell || "").replace(/\D/g, "");
+      const uName = (data.username || "").toLowerCase();
+      const uEmail = (data.email || "").toLowerCase();
+
+      if (
+        (inputDigits.length >= 7 && (uPhone === inputDigits || uPhoneCell.includes(inputDigits) || inputDigits.includes(uPhone))) ||
+        (inputClean && (uPhone === inputClean || uName === inputClean || uEmail === inputClean))
+      ) {
+        userDoc = docSnap;
+        break;
+      }
+    }
+
+    if (!userDoc) {
+      throw new Error(`No registered account found with phone number '${rawInput.trim()}'. Please check the number.`);
+    }
+
+    const uData = userDoc.data();
     // Generate a 6-digit verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes validity
@@ -378,25 +443,51 @@ export const firebaseService = {
       updated_at: new Date().toISOString(),
     });
 
+    const userPhone = uData.phone || rawInput.trim();
+    const userName = uData.username || uData.name || "User";
+
     return {
-      message: "6-digit verification code generated.",
+      message: `6-digit verification code sent to ${userPhone}.`,
       code: verificationCode,
+      phone: userPhone,
+      username: userName,
     };
   },
 
-  verifyResetCode: async (data: { email: string; code: string }): Promise<{ verified: boolean; message: string }> => {
-    const emailClean = data.email.trim().toLowerCase();
+  verifyResetCode: async (data: { phone?: string; email?: string; username?: string; code: string }): Promise<{ verified: boolean; message: string }> => {
+    const rawInput = (data.phone || data.username || data.email || "").trim().toLowerCase();
+    const inputDigits = (data.phone || "").replace(/\D/g, "");
     const codeClean = data.code.trim();
 
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", emailClean));
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      throw new Error("No account found with this email address.");
+    if (!codeClean) {
+      throw new Error("Please enter the 6-digit verification code.");
     }
 
-    const userData = snap.docs[0].data();
+    const usersRef = collection(db, "users");
+    const snap = await getDocs(usersRef);
+
+    let userDoc: any = null;
+    for (const docSnap of snap.docs) {
+      const d = docSnap.data();
+      const uPhone = (d.phone || "").replace(/\D/g, "");
+      const uPhoneCell = (d.phone_cell || "").replace(/\D/g, "");
+      const uName = (d.username || "").toLowerCase();
+      const uEmail = (d.email || "").toLowerCase();
+
+      if (
+        (inputDigits.length >= 7 && (uPhone === inputDigits || uPhoneCell.includes(inputDigits) || inputDigits.includes(uPhone))) ||
+        (rawInput && (uPhone === rawInput || uName === rawInput || uEmail === rawInput))
+      ) {
+        userDoc = docSnap;
+        break;
+      }
+    }
+
+    if (!userDoc) {
+      throw new Error("No registered account found with this phone number.");
+    }
+
+    const userData = userDoc.data();
     if (!userData.reset_code || userData.reset_code !== codeClean) {
       throw new Error("Invalid verification code. Please check and try again.");
     }
@@ -411,8 +502,9 @@ export const firebaseService = {
     };
   },
 
-  resetPassword: async (data: { email: string; code: string; newPassword: string }): Promise<{ message: string }> => {
-    const emailClean = data.email.trim().toLowerCase();
+  resetPassword: async (data: { phone?: string; email?: string; username?: string; code: string; newPassword: string }): Promise<{ message: string }> => {
+    const rawInput = (data.phone || data.username || data.email || "").trim().toLowerCase();
+    const inputDigits = (data.phone || "").replace(/\D/g, "");
     const codeClean = data.code.trim();
     const newPassClean = data.newPassword.trim();
 
@@ -421,14 +513,29 @@ export const firebaseService = {
     }
 
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", emailClean));
-    const snap = await getDocs(q);
+    const snap = await getDocs(usersRef);
 
-    if (snap.empty) {
-      throw new Error("No account found with this email address.");
+    let userDoc: any = null;
+    for (const docSnap of snap.docs) {
+      const d = docSnap.data();
+      const uPhone = (d.phone || "").replace(/\D/g, "");
+      const uPhoneCell = (d.phone_cell || "").replace(/\D/g, "");
+      const uName = (d.username || "").toLowerCase();
+      const uEmail = (d.email || "").toLowerCase();
+
+      if (
+        (inputDigits.length >= 7 && (uPhone === inputDigits || uPhoneCell.includes(inputDigits) || inputDigits.includes(uPhone))) ||
+        (rawInput && (uPhone === rawInput || uName === rawInput || uEmail === rawInput))
+      ) {
+        userDoc = docSnap;
+        break;
+      }
     }
 
-    const userDoc = snap.docs[0];
+    if (!userDoc) {
+      throw new Error("No registered account found with this phone number.");
+    }
+
     const userData = userDoc.data();
 
     if (!userData.reset_code || userData.reset_code !== codeClean) {
