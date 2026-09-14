@@ -54,28 +54,34 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 overflow-x-hidden">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-[#09090b]/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 bg-[#09090b]/95 backdrop-blur-md border-b border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="lg:hidden p-2 -ml-1 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
+              aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                System Active
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="lg:hidden font-bold text-sm text-white tracking-tight truncate">
+                Lorry TMS
               </span>
-              <span className="text-zinc-700">•</span>
-              <span className="text-xs font-medium text-zinc-400">
-                Lorry Transport Management System
-              </span>
+              <div className="hidden sm:flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 shrink-0">
+                  System Active
+                </span>
+                <span className="text-zinc-700">•</span>
+                <span className="text-xs font-medium text-zinc-400 truncate">
+                  Lorry Transport Management System
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setActiveTab("memos")}
               className="hidden md:flex items-center gap-1.5 text-xs font-medium bg-indigo-950/50 hover:bg-indigo-900/60 text-indigo-300 px-3 py-1.5 rounded-xl border border-indigo-700/40 transition-colors"
@@ -87,20 +93,20 @@ const MainLayout: React.FC = () => {
 
             <button
               onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center gap-2 text-xs font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-800 hover:text-white px-3 py-1.5 rounded-xl border border-zinc-700/60 transition-colors cursor-pointer group"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-800 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-700/60 transition-colors cursor-pointer group max-w-[170px] sm:max-w-[240px]"
               title="Edit Transport Details & Account"
             >
-              <User className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" />
-              <span className="max-w-[140px] sm:max-w-[200px] truncate">
+              <User className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="truncate">
                 {user?.company_name || user?.name || "Transport Settings"}
               </span>
-              <Settings className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white" />
+              <Settings className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white shrink-0 hidden xs:inline-block" />
             </button>
           </div>
         </header>
 
         {/* Dynamic Route/Tab Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
           {activeTab === "dashboard" && <DashboardView setActiveTab={(tab) => setActiveTab(tab)} />}
           {activeTab === "lorries" && <LorryManagementView />}
           {activeTab === "trips" && <TripManagementView />}

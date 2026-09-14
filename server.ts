@@ -40,6 +40,26 @@ async function startServer() {
   app.use("/api/memos", memosRouter);
   app.use("/api/database", databaseRouter);
 
+  // Prevent any unhandled /api or /api/* request from falling through to Vite SPA/HTML
+  app.all(["/api", "/api/*"], (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(404).json({
+      error: `API endpoint not found: ${req.method} ${req.path}`,
+    });
+  });
+
+  // Central error handler for /api to always return JSON instead of HTML
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith("/api")) {
+      console.warn(`[Server API Error] ${req.method} ${req.path}:`, err?.message || err);
+      res.status(err?.status || 500).json({
+        error: err?.message || "Internal server error occurred",
+      });
+      return;
+    }
+    next(err);
+  });
+
   // Vite middleware in dev / Static files in production
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");

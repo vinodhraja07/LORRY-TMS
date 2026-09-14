@@ -500,7 +500,7 @@ export const ReportsView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-blue-500" />
@@ -510,10 +510,10 @@ export const ReportsView: React.FC = () => {
             Date-range analytics, profit trends, itemized expense breakdowns, and vehicle performance rankings.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
           <button
             onClick={handleDownloadReport}
-            className="px-3.5 py-2 text-xs font-semibold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-700/50 rounded-xl flex items-center gap-1.5 transition-colors shadow-xs"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2 text-xs font-semibold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-700/50 rounded-xl flex items-center gap-1.5 transition-colors shadow-xs shrink-0"
             title="Download full report document in A4 format"
           >
             <Download className="w-4 h-4 text-emerald-400" />
@@ -521,7 +521,7 @@ export const ReportsView: React.FC = () => {
           </button>
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center gap-1.5 transition-colors"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center gap-1.5 transition-colors shrink-0"
             title="Print full report formatted for A4 paper"
           >
             <Printer className="w-4 h-4" />
@@ -531,11 +531,11 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Date Range & Preset Filters */}
-      <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="bg-[#18181b] p-3 sm:p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             {/* From Date */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-zinc-300 whitespace-nowrap">From:</span>
               <input
                 type="date"
@@ -546,7 +546,7 @@ export const ReportsView: React.FC = () => {
             </div>
 
             {/* To Date */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-zinc-300 whitespace-nowrap">To:</span>
               <input
                 type="date"
@@ -557,12 +557,12 @@ export const ReportsView: React.FC = () => {
             </div>
 
             {/* Vehicle Filter */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
               <span className="text-xs font-semibold text-zinc-300 whitespace-nowrap">Vehicle:</span>
               <select
                 value={selectedVehicle}
                 onChange={(e) => setSelectedVehicle(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-auto px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">Entire Fleet ({lorries.length} Lorries)</option>
                 {lorries.map((l) => (
@@ -575,28 +575,28 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* Quick Range Buttons */}
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center gap-1 text-xs overflow-x-auto max-w-full scrollbar-none py-1">
             <button
               onClick={() => setQuickRange("THIS_MONTH")}
-              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors whitespace-nowrap shrink-0"
             >
               This Month
             </button>
             <button
               onClick={() => setQuickRange("LAST_30")}
-              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors whitespace-nowrap shrink-0"
             >
               Last 30 Days
             </button>
             <button
               onClick={() => setQuickRange("YEAR_2026")}
-              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors whitespace-nowrap shrink-0"
             >
               Full Year 2026
             </button>
             <button
               onClick={() => setQuickRange("ALL")}
-              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors whitespace-nowrap shrink-0"
             >
               All Time
             </button>
@@ -614,38 +614,38 @@ export const ReportsView: React.FC = () => {
       ) : (
         <>
           {/* Key Metrics Cards for Selected Range */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Total Income */}
-            <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+            <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
               <span className="text-xs font-medium text-zinc-400">Selected Range Income</span>
-              <p className="text-2xl font-bold text-white mt-2">
+              <p className="text-xl sm:text-2xl font-bold text-white mt-2 font-mono">
                 {formatCurrency(reports.metrics.totalIncome)}
               </p>
               <p className="text-xs text-zinc-500 mt-1">{reports.metrics.totalTrips} Total Trips Logged</p>
             </div>
 
             {/* Total Expenses */}
-            <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+            <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
               <span className="text-xs font-medium text-zinc-400">Selected Range Expenses</span>
-              <p className="text-2xl font-bold text-rose-400 mt-2">
+              <p className="text-xl sm:text-2xl font-bold text-rose-400 mt-2 font-mono">
                 {formatCurrency(reports.metrics.totalExpenses)}
               </p>
               <p className="text-xs text-zinc-500 mt-1">Diesel, Tolls, Salaries, Maintenance</p>
             </div>
 
             {/* Net Profit */}
-            <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+            <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
               <span className="text-xs font-medium text-zinc-400">Net Operating Profit</span>
-              <p className={`text-2xl font-bold mt-2 ${reports.metrics.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <p className={`text-xl sm:text-2xl font-bold mt-2 font-mono ${reports.metrics.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {formatCurrency(reports.metrics.netProfit)}
               </p>
               <p className="text-xs text-zinc-500 mt-1">Profit Margin: {reports.metrics.profitMargin}%</p>
             </div>
 
             {/* Total Tonnage */}
-            <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+            <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
               <span className="text-xs font-medium text-zinc-400">Total Cargo Hauled</span>
-              <p className="text-2xl font-bold text-blue-400 font-mono mt-2">
+              <p className="text-xl sm:text-2xl font-bold text-blue-400 font-mono mt-2">
                 {reports.metrics.totalTonnage} Tons
               </p>
               <p className="text-xs text-zinc-500 mt-1">Hauled across road corridors</p>
@@ -736,7 +736,7 @@ export const ReportsView: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
+              <table className="w-full min-w-[760px] text-left text-xs text-zinc-300">
                 <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3.5 px-4">Vehicle Number</th>
@@ -798,7 +798,7 @@ export const ReportsView: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
+              <table className="w-full min-w-[960px] text-left text-xs text-zinc-300">
                 <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3.5 px-3">S.No</th>

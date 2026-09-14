@@ -213,7 +213,7 @@ export const LorryManagementView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Truck className="w-6 h-6 text-blue-500" />
@@ -226,7 +226,7 @@ export const LorryManagementView: React.FC = () => {
         <button
           id="add-new-lorry-btn"
           onClick={handleOpenAdd}
-          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center gap-2 transition-colors self-start sm:self-auto"
+          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center justify-center gap-2 transition-colors self-stretch sm:self-auto shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Lorry</span>
@@ -234,7 +234,7 @@ export const LorryManagementView: React.FC = () => {
       </div>
 
       {/* Search & Status Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#18181b] p-3 sm:p-4 rounded-xl border border-white/10 shadow-xs">
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full md:w-96">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -249,19 +249,19 @@ export const LorryManagementView: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="px-3 py-2 text-xs font-medium bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 border border-zinc-700 transition-colors"
+            className="px-3 py-2 text-xs font-medium bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 border border-zinc-700 transition-colors shrink-0"
           >
             Search
           </button>
         </form>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto scrollbar-none py-1">
           {["ALL", "Available", "On Trip", "Inactive"].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === st
                   ? "bg-blue-600 text-white shadow-xs font-semibold shadow-blue-500/20"
                   : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 hover:bg-zinc-800"
@@ -276,7 +276,7 @@ export const LorryManagementView: React.FC = () => {
       {/* Lorries Fleet Table & Document Reminders */}
       <div className="bg-[#18181b] rounded-2xl border border-white/10 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
+          <table className="w-full min-w-[760px] text-left text-xs text-zinc-300">
             <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3.5 px-4">Vehicle Number</th>

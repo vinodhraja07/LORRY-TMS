@@ -647,6 +647,22 @@ export async function initDatabase(): Promise<Database> {
     CREATE INDEX IF NOT EXISTS idx_income_expenses_trip ON income_expenses(trip_id);
     CREATE INDEX IF NOT EXISTS idx_trip_memos_owner ON trip_memos(owner_id);
     CREATE INDEX IF NOT EXISTS idx_trip_memos_date ON trip_memos(date);
+
+    -- Durable OTP and Password Reset Session Records
+    CREATE TABLE IF NOT EXISTS otp_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      hashed_otp TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      attempts INTEGER DEFAULT 0,
+      reset_token TEXT,
+      reset_token_expires_at INTEGER,
+      consumed INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_otp_phone ON otp_records(phone);
+    CREATE INDEX IF NOT EXISTS idx_otp_reset_token ON otp_records(reset_token);
   `);
 
   // Safe migrations for existing databases

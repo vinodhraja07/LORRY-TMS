@@ -399,7 +399,7 @@ export const firebaseService = {
     };
   },
 
-  forgotPassword: async (input: string | { phone?: string; email?: string; username?: string }): Promise<{ message: string; code: string; phone: string; username: string }> => {
+  forgotPassword: async (input: string | { phone?: string; email?: string; username?: string }): Promise<{ message: string; phone: string; username: string }> => {
     const rawInput = typeof input === "string" ? input : (input.phone || input.username || input.email || "");
     const inputClean = rawInput.trim().toLowerCase();
     const inputDigits = rawInput.replace(/\D/g, "");
@@ -448,7 +448,6 @@ export const firebaseService = {
 
     return {
       message: `6-digit verification code sent to ${userPhone}.`,
-      code: verificationCode,
       phone: userPhone,
       username: userName,
     };

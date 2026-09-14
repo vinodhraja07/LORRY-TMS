@@ -19,6 +19,65 @@ import {
 
 export { getStoredToken, setStoredToken, removeStoredToken, getStoredUser, setStoredUser };
 
+/**
+ * Robust JSON fetch wrapper that gracefully handles HTML error pages,
+ * server cold-starts, and network disconnects without throwing
+ * "Unexpected token '<', '<!doctype '... is not valid JSON".
+ */
+async function safeFetchJson<T = any>(url: string, options?: RequestInit): Promise<T> {
+  let res: Response;
+  const requestHeaders: Record<string, string> = {
+    Accept: "application/json",
+    ...(options?.headers as Record<string, string> || {}),
+  };
+
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: requestHeaders,
+    });
+  } catch (netErr: any) {
+    throw new Error(
+      netErr?.message?.includes("Failed to fetch")
+        ? "Network error. Please check your internet connection or server status."
+        : netErr?.message || "Connection failed. Please retry."
+    );
+  }
+
+  const contentType = (res.headers.get("content-type") || "").toLowerCase();
+  let data: any = null;
+
+  if (contentType.includes("application/json")) {
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    // If server returned HTML (e.g. <!doctype or <html>) or plain text
+    const text = await res.text();
+    if (text.trim().startsWith("<")) {
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status} (${res.statusText || "Service Unavailable"}). Please try again in a few moments.`);
+      }
+      throw new Error("Unable to reach the API service (received HTML instead of JSON). Please refresh the page and try again.");
+    }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
+  }
+
+  if (!res.ok) {
+    const errorMsg =
+      data?.error || data?.message || `Request failed with status ${res.status} (${res.statusText || "Error"})`;
+    throw new Error(errorMsg);
+  }
+
+  return (data || {}) as T;
+}
+
 export const api = {
   // Auth (Dedicated Username, Phone & Password)
   login: async (credentials: { username?: string; email?: string; phone?: string; password: string }) => {
@@ -28,32 +87,54 @@ export const api = {
     return firebaseService.registerUser(userData);
   },
   forgotPassword: async (data: { phone?: string; email?: string; username?: string } | string) => {
-    const res = await firebaseService.forgotPassword(data);
-    // Also trigger server SMS gateway dispatch
-    try {
-      await fetch("/api/auth/send-sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: res.phone, code: res.code }),
-      });
-    } catch (e) {
-      // ignore network errors for sms dispatch
-    }
-    return res;
+    const phoneInput = typeof data === "string" ? data : (data.phone || data.username || data.email || "");
+    return safeFetchJson<{
+      success?: boolean;
+      message: string;
+      phone?: string;
+      delivered?: boolean;
+      provider?: string;
+      devOtp?: string;
+      note?: string;
+    }>("/api/auth/forgot-password-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phoneInput }),
+    });
   },
   sendSms: async (data: { phone: string; code: string; message?: string }) => {
-    const res = await fetch("/api/auth/send-sms", {
+    return safeFetchJson<{ success: boolean; message?: string }>("/api/auth/send-sms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   verifyResetCode: async (data: { phone?: string; email?: string; username?: string; code: string }) => {
-    return firebaseService.verifyResetCode(data);
+    const phoneInput = data.phone || data.username || data.email || "";
+    return safeFetchJson<{ verified: boolean; message?: string; resetToken?: string }>("/api/auth/verify-sms-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phoneInput, code: data.code }),
+    });
   },
-  resetPassword: async (data: { phone?: string; email?: string; username?: string; code: string; newPassword: string }) => {
-    return firebaseService.resetPassword(data);
+  resetPassword: async (data: {
+    phone?: string;
+    email?: string;
+    username?: string;
+    code?: string;
+    resetToken?: string;
+    newPassword: string;
+  }) => {
+    const phoneInput = data.phone || data.username || data.email || "";
+    return safeFetchJson<{ message: string }>("/api/auth/reset-password-with-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone: phoneInput,
+        resetToken: data.resetToken,
+        newPassword: data.newPassword,
+      }),
+    });
   },
   getMe: async () => {
     const stored = getStoredUser();

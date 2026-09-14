@@ -286,7 +286,7 @@ export const IncomeExpensesView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <ReceiptIndianRupee className="w-6 h-6 text-blue-500" />
@@ -299,7 +299,7 @@ export const IncomeExpensesView: React.FC = () => {
         <button
           id="add-finance-btn"
           onClick={handleOpenAdd}
-          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center gap-2 transition-colors self-start sm:self-auto"
+          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center justify-center gap-2 transition-colors self-stretch sm:self-auto shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Log Trip Expenses</span>
@@ -307,31 +307,31 @@ export const IncomeExpensesView: React.FC = () => {
       </div>
 
       {/* Financial Overview Metrics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs">
+      <div className="grid grid-cols-1 min-[440px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+        <div className="bg-[#18181b] p-3.5 sm:p-4 rounded-xl border border-white/10 shadow-xs">
           <p className="text-[11px] font-medium text-zinc-400">Gross Freight Income</p>
-          <p className="text-lg font-bold text-white mt-1">{formatCurrency(summary.totalIncome)}</p>
+          <p className="text-base sm:text-lg font-bold text-white mt-1">{formatCurrency(summary.totalIncome)}</p>
         </div>
-        <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs">
+        <div className="bg-[#18181b] p-3.5 sm:p-4 rounded-xl border border-white/10 shadow-xs">
           <p className="text-[11px] font-medium text-zinc-400">Diesel Fuel Cost</p>
-          <p className="text-lg font-bold text-amber-400 mt-1">{formatCurrency(summary.totalDiesel)}</p>
+          <p className="text-base sm:text-lg font-bold text-amber-400 mt-1">{formatCurrency(summary.totalDiesel)}</p>
         </div>
-        <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs">
+        <div className="bg-[#18181b] p-3.5 sm:p-4 rounded-xl border border-white/10 shadow-xs">
           <p className="text-[11px] font-medium text-zinc-400">Driver Salaries & Bata</p>
-          <p className="text-lg font-bold text-blue-400 mt-1">{formatCurrency(summary.totalSalary)}</p>
+          <p className="text-base sm:text-lg font-bold text-blue-400 mt-1">{formatCurrency(summary.totalSalary)}</p>
         </div>
-        <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs">
+        <div className="bg-[#18181b] p-3.5 sm:p-4 rounded-xl border border-white/10 shadow-xs">
           <p className="text-[11px] font-medium text-zinc-400">Total Expenses</p>
-          <p className="text-lg font-bold text-rose-400 mt-1">{formatCurrency(summary.totalExpenses)}</p>
+          <p className="text-base sm:text-lg font-bold text-rose-400 mt-1">{formatCurrency(summary.totalExpenses)}</p>
         </div>
-        <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs col-span-2 sm:col-span-1">
+        <div className="bg-[#18181b] p-3.5 sm:p-4 rounded-xl border border-white/10 shadow-xs col-span-1 min-[440px]:col-span-2 sm:col-span-1">
           <p className="text-[11px] font-medium text-zinc-400">Net Fleet Profit</p>
-          <p className="text-lg font-bold text-emerald-400 mt-1">{formatCurrency(summary.totalProfit)}</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-400 mt-1">{formatCurrency(summary.totalProfit)}</p>
         </div>
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
+      <div className="bg-[#18181b] p-3 sm:p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -394,7 +394,7 @@ export const IncomeExpensesView: React.FC = () => {
       {/* Financial Records Table Display (Section 6 Columns) */}
       <div className="bg-[#18181b] rounded-2xl border border-white/10 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
+          <table className="w-full min-w-[960px] text-left text-xs text-zinc-300">
             <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3.5 px-3">Trip</th>

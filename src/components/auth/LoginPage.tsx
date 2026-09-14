@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { api } from "../../services/api";
@@ -19,11 +19,6 @@ import {
   Phone,
   Smartphone,
   Info,
-  MessageSquare,
-  Copy,
-  Check,
-  Send,
-  ExternalLink,
 } from "lucide-react";
 
 type AuthMode = "signin" | "signup" | "forgot_phone" | "forgot_code" | "forgot_newpass";
@@ -60,10 +55,21 @@ export const LoginPage: React.FC = () => {
   const [forgotPhone, setForgotPhone] = useState("");
   const [targetPhoneFormatted, setTargetPhoneFormatted] = useState("");
   const [forgotCode, setForgotCode] = useState("");
-  const [activeCode, setActiveCode] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [demoCode, setDemoCode] = useState<string | null>(null);
+  const [smsNotice, setSmsNotice] = useState<string | null>(null);
+
+  // Countdown timer for 60-second OTP resend cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   // 1. Handle Sign In
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -146,7 +152,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // 3. Handle Forgot Password - Step 1: Send 6-Digit Code to Phone Number
+  // 3. Handle Forgot Password - Step 1: Send 6-Digit Code to Phone Number via SMS
   const handleSendResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -156,7 +162,7 @@ export const LoginPage: React.FC = () => {
     }
     const digits = forgotPhone.replace(/\D/g, "");
     if (digits.length < 7) {
-      setErrorMessage("Please enter a valid registered phone number.");
+      setErrorMessage("Please enter a valid registered phone number (at least 7 to 10 digits).");
       return;
     }
 
@@ -164,10 +170,17 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await api.forgotPassword({ phone: forgotPhone.trim() });
       setTargetPhoneFormatted(res.phone || forgotPhone);
-      if (res.code) {
-        setActiveCode(res.code);
+      setResendCooldown(60);
+      if (res.devOtp) {
+        setDemoCode(res.devOtp);
+        setForgotCode(res.devOtp);
+        setSmsNotice(res.note || "Twilio SMS credentials are not configured in settings. A demo verification code has been auto-filled below.");
+        toastSuccess(`Demo Verification Code: ${res.devOtp} (Auto-filled)`);
+      } else {
+        setDemoCode(null);
+        setSmsNotice(null);
+        toastSuccess(`6-digit verification code sent via SMS to ${res.phone || forgotPhone}!`);
       }
-      toastSuccess(`6-digit verification code sent to ${res.phone || forgotPhone}!`);
       setMode("forgot_code");
     } catch (err: any) {
       const msg = err.message || "No registered account found with this phone number.";
@@ -192,11 +205,14 @@ export const LoginPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      await api.verifyResetCode({
+      const res = await api.verifyResetCode({
         phone: forgotPhone.trim(),
         code: forgotCode.trim(),
       });
-      toastSuccess("Verification code verified! Set your new password.");
+      if (res.resetToken) {
+        setResetToken(res.resetToken);
+      }
+      toastSuccess("Verification code verified! Please set your new password.");
       setMode("forgot_newpass");
     } catch (err: any) {
       const msg = err.message || "Invalid verification code. Please check your SMS and try again.";
@@ -207,25 +223,36 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Resend 6-Digit Code
+  // Resend 6-Digit Code via SMS
   const handleResendCode = async () => {
+    if (resendCooldown > 0) {
+      toastError(`Please wait ${resendCooldown} seconds before requesting another code.`);
+      return;
+    }
     setErrorMessage(null);
     setLoading(true);
     try {
       const res = await api.forgotPassword({ phone: forgotPhone.trim() });
       setTargetPhoneFormatted(res.phone || forgotPhone);
-      if (res.code) {
-        setActiveCode(res.code);
+      setResendCooldown(60);
+      if (res.devOtp) {
+        setDemoCode(res.devOtp);
+        setForgotCode(res.devOtp);
+        setSmsNotice(res.note || "Twilio SMS credentials are not configured in settings. A new demo verification code has been auto-filled below.");
+        toastSuccess(`New Demo Verification Code: ${res.devOtp}`);
+      } else {
+        setDemoCode(null);
+        setSmsNotice(null);
+        toastSuccess(`New 6-digit verification code sent via SMS to ${res.phone || forgotPhone}.`);
       }
-      toastSuccess(`New 6-digit verification code sent to ${res.phone || forgotPhone}.`);
     } catch (err: any) {
-      toastError(err.message || "Failed to resend code.");
+      toastError(err.message || "Failed to resend verification code.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 5. Handle Forgot Password - Step 3: Set Password & Re-enter Password
+  // 5. Handle Forgot Password - Step 3: Set Password & Re-enter Password (Dual-Write Sync)
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -246,6 +273,7 @@ export const LoginPage: React.FC = () => {
     try {
       await api.resetPassword({
         phone: forgotPhone.trim(),
+        resetToken: resetToken || undefined,
         code: forgotCode.trim(),
         newPassword: newPassword.trim(),
       });
@@ -254,6 +282,8 @@ export const LoginPage: React.FC = () => {
       toastSuccess(successMsg);
       setLoginUsername(forgotPhone.trim());
       setLoginPassword("");
+      setResetToken(null);
+      setForgotCode("");
       setMode("signin");
     } catch (err: any) {
       const msg = err.message || "Failed to reset password. Please restart the reset process.";
@@ -265,31 +295,31 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden text-zinc-100">
+    <div className="min-h-screen bg-[#09090b] flex flex-col justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 relative overflow-hidden text-zinc-100">
       {/* Background Glow */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
-            <Truck className="w-8 h-8" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
+            <Truck className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
         </div>
-        <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-white">
+        <h2 className="mt-3 sm:mt-4 text-center text-xl sm:text-2xl font-bold tracking-tight text-white">
           Lorry TMS
         </h2>
-        <p className="mt-1 text-center text-xs text-zinc-400">
+        <p className="mt-0.5 sm:mt-1 text-center text-[11px] sm:text-xs text-zinc-400">
           Fleet Operations, Trips, Expiries & Financials
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
-        <div className="bg-[#18181b] border border-white/10 py-8 px-6 shadow-2xl rounded-2xl sm:px-10 text-zinc-100">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 w-full">
+        <div className="bg-[#18181b] border border-white/10 p-4 sm:p-8 sm:px-10 shadow-2xl rounded-2xl text-zinc-100">
 
           {/* Success Banner */}
           {successBanner && (
-            <div className="mb-5 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/40 text-emerald-300 text-xs flex items-start gap-2.5 shadow-sm animate-fade-in">
+            <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/40 text-emerald-300 text-xs flex items-start gap-2.5 shadow-sm animate-fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <div className="flex-1 font-medium">{successBanner}</div>
             </div>
@@ -297,7 +327,7 @@ export const LoginPage: React.FC = () => {
 
           {/* Error Banner */}
           {errorMessage && (
-            <div className="mb-5 p-3.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 text-xs flex items-start gap-2.5 shadow-sm animate-fade-in">
+            <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 text-xs flex items-start gap-2.5 shadow-sm animate-fade-in">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div className="flex-1 font-medium">{errorMessage}</div>
             </div>
@@ -605,7 +635,7 @@ export const LoginPage: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white tracking-tight">Forgot Password</h3>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Enter your registered phone number to receive a 6-digit verification code
+                  Enter your registered mobile phone number (e.g. 9363645124) to verify and reset your password
                 </p>
               </div>
 
@@ -672,84 +702,45 @@ export const LoginPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* SMS Dispatch Notice & Mobile Phone Direct Actions */}
-              <div className="mb-5 p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-300 text-xs shadow-inner">
-                <div className="flex items-start gap-3">
-                  <Smartphone className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-white font-medium text-xs">SMS Verification Dispatched</p>
-                    <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
-                      Verification code was sent to registered mobile <span className="text-zinc-200 font-semibold">{targetPhoneFormatted || forgotPhone}</span>.
-                    </p>
+              {/* SMS Dispatch Notice / Sandbox Fallback */}
+              {demoCode ? (
+                <div className="mb-5 p-3.5 rounded-xl bg-amber-950/40 border border-amber-600/40 text-amber-200 text-xs shadow-inner">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-white font-medium text-xs">Sandbox Mode (Twilio Unconfigured)</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold">
+                          Demo OTP
+                        </span>
+                      </div>
+                      <p className="text-zinc-300 text-[11px] leading-relaxed">
+                        Twilio credentials (Account SID starting with &apos;AC&apos;) are not configured in settings. A demo verification code has been generated and auto-filled below for immediate access:
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="font-mono text-base font-bold text-amber-200 bg-amber-900/60 px-2.5 py-1 rounded border border-amber-600/40 tracking-wider">
+                          {demoCode}
+                        </span>
+                        <span className="text-[11px] text-zinc-400">(Ready to verify below)</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Instant Send to Mobile & Fallback Tools */}
-                {activeCode && (
-                  <div className="mt-3 pt-3 border-t border-blue-900/50 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        id="auto-fill-helper-btn"
-                        onClick={() => {
-                          setForgotCode(activeCode);
-                          toastSuccess("Verification code auto-filled!");
-                        }}
-                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        <span>⚡ Fill Code</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        id="copy-code-helper-btn"
-                        onClick={() => {
-                          navigator.clipboard?.writeText(activeCode);
-                          setCopiedCode(true);
-                          toastSuccess("Code copied to clipboard!");
-                          setTimeout(() => setCopiedCode(false), 2000);
-                        }}
-                        className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedCode ? "Copied" : "Copy"}</span>
-                      </button>
+              ) : (
+                <div className="mb-5 p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-300 text-xs shadow-inner">
+                  <div className="flex items-start gap-3">
+                    <Smartphone className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-white font-medium text-xs">SMS Verification Dispatched</p>
+                      <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
+                        A 6-digit verification code has been sent via SMS to your registered mobile{" "}
+                        <span className="text-zinc-200 font-semibold">{targetPhoneFormatted || forgotPhone}</span>.
+                        This code is valid for 5 minutes.
+                      </p>
                     </div>
-
-                    {/* Direct phone trigger links */}
-                    {(() => {
-                      const cleanDigits = (targetPhoneFormatted || forgotPhone).replace(/\D/g, "");
-                      const formattedPhone = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
-                      const msgText = encodeURIComponent(`SRI TRANSPORT: Your 6-digit verification code is ${activeCode}`);
-                      return (
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={`https://wa.me/${formattedPhone}?text=${msgText}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            id="whatsapp-direct-send"
-                            className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/50 text-emerald-300 rounded text-[11px] font-medium flex items-center gap-1 transition-all"
-                            title="Send code to phone via WhatsApp"
-                          >
-                            <MessageSquare className="w-3 h-3 text-emerald-400" />
-                            <span>WhatsApp SMS</span>
-                          </a>
-
-                          <a
-                            href={`sms:${cleanDigits}?body=${msgText}`}
-                            id="sms-direct-send"
-                            className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded text-[11px] font-medium flex items-center gap-1 transition-all"
-                            title="Open SMS App on phone"
-                          >
-                            <Send className="w-3 h-3 text-zinc-400" />
-                            <span>Mobile SMS</span>
-                          </a>
-                        </div>
-                      );
-                    })()}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <form onSubmit={handleVerifyResetCode} className="space-y-4">
                 <div>
@@ -764,7 +755,7 @@ export const LoginPage: React.FC = () => {
                     value={forgotCode}
                     onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     placeholder="••••••"
-                    className="w-full py-3 px-4 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-mono text-xl tracking-[0.4em] text-white placeholder-zinc-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full py-3 px-2 sm:px-4 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-mono text-xl sm:text-2xl tracking-[0.25em] sm:tracking-[0.4em] text-white placeholder-zinc-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -779,16 +770,16 @@ export const LoginPage: React.FC = () => {
                 </button>
 
                 <div className="flex flex-col gap-2.5 pt-4 text-xs border-t border-zinc-800 text-center">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col xs:flex-row items-center justify-between gap-2">
                     <button
                       type="button"
                       id="resend-code-btn"
                       onClick={handleResendCode}
-                      disabled={loading}
-                      className="text-blue-400 hover:text-blue-300 transition-colors font-medium flex items-center gap-1 cursor-pointer"
+                      disabled={loading || resendCooldown > 0}
+                      className="text-blue-400 hover:text-blue-300 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-1 cursor-pointer"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Resend Code</span>
+                      <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                      <span>{resendCooldown > 0 ? `Resend Code (${resendCooldown}s)` : "Resend Code"}</span>
                     </button>
 
                     <button

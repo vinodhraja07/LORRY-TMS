@@ -285,7 +285,7 @@ export const TripManagementView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Route className="w-6 h-6 text-blue-500" />
@@ -298,7 +298,7 @@ export const TripManagementView: React.FC = () => {
         <button
           id="new-trip-btn"
           onClick={handleOpenAdd}
-          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center gap-2 transition-colors self-start sm:self-auto"
+          className="px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs shadow-blue-500/20 flex items-center justify-center gap-2 transition-colors self-stretch sm:self-auto shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Trip Entry</span>
@@ -306,7 +306,7 @@ export const TripManagementView: React.FC = () => {
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="bg-[#18181b] p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
+      <div className="bg-[#18181b] p-3 sm:p-4 rounded-xl border border-white/10 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <form onSubmit={handleSearchSubmit} className="relative">
@@ -371,7 +371,7 @@ export const TripManagementView: React.FC = () => {
 
         {/* Active Filter summary */}
         {(searchTerm || selectedVehicle !== "ALL" || fromDate || toDate) && (
-          <div className="flex items-center justify-between text-xs text-zinc-400 pt-2 border-t border-zinc-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400 pt-2 border-t border-zinc-800">
             <span>
               Showing filtered results: <b className="text-white">{totalCount}</b> trips found
             </span>
@@ -394,7 +394,7 @@ export const TripManagementView: React.FC = () => {
       {/* Trips Table Display (Matching Specific Section 5 Columns) */}
       <div className="bg-[#18181b] rounded-2xl border border-white/10 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
+          <table className="w-full min-w-[1050px] text-left text-xs text-zinc-300">
             <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3.5 px-3">S.No</th>

@@ -1252,11 +1252,11 @@ export const TripMemoView: React.FC = () => {
       {/* ========================================================================= */}
       {/* THE TRIP SHEET FORM & PRINT CONTAINER (A4 FORMAT) */}
       {/* ========================================================================= */}
-      <div className="flex justify-center">
+      <div className="overflow-x-auto w-full pb-6 flex justify-start lg:justify-center">
         <div
           ref={printableRef}
           id="trip-bill-sheet"
-          className="w-full max-w-[850px] bg-[#ffffff] text-[#1b357d] shadow-2xl rounded-sm border-2 border-[#1b357d] p-6 sm:p-8 font-serif leading-tight print:p-0 print:border-none print:shadow-none print:w-full print:max-w-none print:bg-white"
+          className="w-full min-w-[720px] max-w-[850px] bg-[#ffffff] text-[#1b357d] shadow-2xl rounded-sm border-2 border-[#1b357d] p-4 sm:p-8 font-serif leading-tight print:p-0 print:border-none print:shadow-none print:w-full print:max-w-none print:bg-white"
           style={{ minHeight: "960px", fontFamily: "'Times New Roman', Times, Georgia, serif" }}
         >
           {/* TOP HEADER: LEFT MEMO NO, CENTER DEVOTIONAL SLOGANS & TRANSPORT BANNER */}

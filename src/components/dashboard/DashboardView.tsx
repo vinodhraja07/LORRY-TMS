@@ -160,11 +160,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Primary KPI Metric Cards (7 Required Core Metrics) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Lorries */}
         <div
           onClick={() => setActiveTab("lorries")}
-          className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs hover:border-blue-500/50 transition-all cursor-pointer group"
+          className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs hover:border-blue-500/50 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-zinc-400">Total Fleet</span>
@@ -183,7 +183,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Available Lorries */}
-        <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+        <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-zinc-400">Available For Trip</span>
             <div className="p-2 bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 rounded-xl">
@@ -201,7 +201,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Lorries on Trip */}
-        <div className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs">
+        <div className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-zinc-400">Lorries On Trip</span>
             <div className="p-2 bg-indigo-950/60 text-indigo-400 border border-indigo-800/40 rounded-xl">
@@ -221,7 +221,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Total Trips */}
         <div
           onClick={() => setActiveTab("trips")}
-          className="bg-[#18181b] p-5 rounded-2xl border border-white/10 shadow-xs hover:border-blue-500/50 transition-all cursor-pointer group"
+          className="bg-[#18181b] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xs hover:border-blue-500/50 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-zinc-400">Logged Trips</span>
@@ -241,9 +241,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Financial KPI Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         {/* Total Trip Income */}
-        <div className="bg-gradient-to-br from-blue-950/80 via-[#18181b] to-[#121215] border border-blue-900/40 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-950/80 via-[#18181b] to-[#121215] border border-blue-900/40 text-white p-4 sm:p-5 rounded-2xl shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between relative z-10">
             <span className="text-xs font-medium text-blue-300">Total Trip Revenue</span>
             <div className="p-2 bg-blue-900/40 text-blue-300 rounded-xl border border-blue-800/40">
@@ -251,7 +251,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="mt-3 relative z-10">
-            <p className="text-2xl font-bold tracking-tight text-white font-mono">
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-white font-mono">
               {formatCurrency(totalIncome)}
             </p>
             <p className="text-xs text-zinc-400 mt-0.5">Calculated across all logged cargo freight</p>
@@ -259,7 +259,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Total Expenses */}
-        <div className="bg-gradient-to-br from-rose-950/80 via-[#18181b] to-[#121215] border border-rose-900/40 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden">
+        <div className="bg-gradient-to-br from-rose-950/80 via-[#18181b] to-[#121215] border border-rose-900/40 text-white p-4 sm:p-5 rounded-2xl shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between relative z-10">
             <span className="text-xs font-medium text-rose-300">Total Operating Expenses</span>
             <div className="p-2 bg-rose-900/40 text-rose-300 rounded-xl border border-rose-800/40">
@@ -267,7 +267,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="mt-3 relative z-10">
-            <p className="text-2xl font-bold tracking-tight text-rose-400 font-mono">
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-rose-400 font-mono">
               {formatCurrency(totalExpenses)}
             </p>
             <p className="text-xs text-zinc-400 mt-0.5">Diesel, Tolls, Salaries, Repairs & Others</p>
@@ -275,7 +275,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Total Profit */}
-        <div className="bg-gradient-to-br from-emerald-950/80 via-[#18181b] to-[#121215] border border-emerald-900/40 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-950/80 via-[#18181b] to-[#121215] border border-emerald-900/40 text-white p-4 sm:p-5 rounded-2xl shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between relative z-10">
             <span className="text-xs font-medium text-emerald-300">Net Fleet Profit</span>
             <div className="p-2 bg-emerald-900/40 text-emerald-300 rounded-xl border border-emerald-800/40">
@@ -283,7 +283,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="mt-3 relative z-10">
-            <p className="text-2xl font-bold tracking-tight text-emerald-400 font-mono">
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-400 font-mono">
               {formatCurrency(totalProfit)}
             </p>
             <p className="text-xs text-zinc-400 mt-0.5">
@@ -295,9 +295,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Document Expiry Alerts (Prominent Required Feature) */}
       <div className="bg-[#18181b] rounded-2xl border border-white/10 shadow-xs overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/80">
+        <div className="px-4 sm:px-6 py-4 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/80">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-950/60 text-amber-400 border border-amber-800/40 rounded-xl">
+            <div className="p-2 bg-amber-950/60 text-amber-400 border border-amber-800/40 rounded-xl shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
@@ -310,11 +310,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Expiry Filter Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl text-xs font-medium border border-zinc-800">
+          {/* Expiry Filter Tabs with Horizontal Scroll */}
+          <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl text-xs font-medium border border-zinc-800 overflow-x-auto max-w-full">
             <button
               onClick={() => setDocFilter("URGENT")}
-              className={`px-3 py-1 rounded-lg transition-colors ${
+              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 docFilter === "URGENT"
                   ? "bg-zinc-800 text-white shadow-xs font-semibold"
                   : "text-zinc-400 hover:text-white"
@@ -324,7 +324,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
             <button
               onClick={() => setDocFilter("EXPIRED")}
-              className={`px-3 py-1 rounded-lg transition-colors ${
+              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 docFilter === "EXPIRED"
                   ? "bg-rose-600 text-white font-semibold"
                   : "text-zinc-400 hover:text-white"
@@ -334,7 +334,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
             <button
               onClick={() => setDocFilter("EXPIRING_SOON")}
-              className={`px-3 py-1 rounded-lg transition-colors ${
+              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 docFilter === "EXPIRING_SOON"
                   ? "bg-amber-600 text-white font-semibold"
                   : "text-zinc-400 hover:text-white"
@@ -344,7 +344,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
             <button
               onClick={() => setDocFilter("ALL")}
-              className={`px-3 py-1 rounded-lg transition-colors ${
+              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 docFilter === "ALL"
                   ? "bg-zinc-800 text-white shadow-xs font-semibold"
                   : "text-zinc-400 hover:text-white"
@@ -356,7 +356,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Expiry Items List */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {filteredAlerts.length === 0 ? (
             <div className="text-center py-8 text-zinc-400">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
@@ -366,11 +366,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {filteredAlerts.slice(0, 8).map((alert, idx) => (
                 <div
                   key={`${alert.lorryId}-${alert.docType}-${idx}`}
-                  className={`p-4 rounded-xl border flex items-start justify-between gap-3 transition-all ${
+                  className={`p-3.5 sm:p-4 rounded-xl border flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 sm:gap-3 transition-all ${
                     alert.status === "Expired"
                       ? "bg-rose-950/30 border-rose-900/50 text-rose-200"
                       : alert.status === "Expiring Soon"
@@ -379,13 +379,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   }`}
                 >
                   <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold font-mono text-sm text-white bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold font-mono text-xs sm:text-sm text-white bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
                         {alert.vehicleNumber}
                       </span>
                       <span className="text-xs font-semibold text-zinc-200">{alert.docTitle}</span>
                     </div>
-                    <p className="text-xs text-zinc-400 font-mono">{alert.formattedText}</p>
+                    <p className="text-[11px] sm:text-xs text-zinc-400 font-mono">{alert.formattedText}</p>
                   </div>
                   <div className="shrink-0">
                     <StatusBadge
@@ -518,7 +518,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
+          <table className="w-full min-w-[700px] text-left text-xs text-zinc-300">
             <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">S.No</th>

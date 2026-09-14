@@ -50,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
       {isOpen && (
         <div
           id="modal-backdrop"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/75 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-y-auto bg-black/75 backdrop-blur-xs"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
@@ -60,18 +60,18 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className={`w-full ${maxWidthClass} bg-[#18181b] rounded-2xl shadow-2xl border border-white/10 text-zinc-100 overflow-hidden my-8`}
+            className={`w-full ${maxWidthClass} bg-[#18181b] rounded-2xl shadow-2xl border border-white/10 text-zinc-100 overflow-hidden my-2 sm:my-6 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100vh-3rem)]`}
           >
             {/* Header */}
-            <div className="flex items-start justify-between px-6 py-5 border-b border-white/10 bg-zinc-900/80">
-              <div>
-                <h3 className="text-lg font-bold text-white">{title}</h3>
-                {subtitle && <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
+            <div className="flex items-start justify-between px-4 sm:px-6 py-3.5 sm:py-5 border-b border-white/10 bg-zinc-900/80 shrink-0 gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">{title}</h3>
+                {subtitle && <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-2">{subtitle}</p>}
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 p-1.5 rounded-lg transition-colors"
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800 p-1.5 rounded-lg transition-colors shrink-0 -mr-1"
                 aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
@@ -79,7 +79,7 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
 
             {/* Content Body */}
-            <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">{children}</div>
           </motion.div>
         </div>
       )}

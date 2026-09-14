@@ -1,8 +1,24 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import dns from "dns";
-import { queryOne, runQuery } from "../db";
+import { queryOne, queryAll, runQuery } from "../db";
 import { generateToken, requireAuth, AuthenticatedRequest } from "../auth";
+import { normalizePhone, maskPhone } from "../phoneUtils";
+import { sendOtpSms } from "../sms";
+import {
+  checkRateLimit,
+  createOtpSession,
+  updateOtpCode,
+  verifyOtp,
+  validateResetToken,
+  consumeResetToken,
+} from "../otp";
+import {
+  findFirestoreUserByPhone,
+  hashFirestorePassword,
+  updateFirestoreUserPassword,
+  revertFirestoreUserPassword,
+} from "../firestore";
 
 export const authRouter = Router();
 
@@ -352,6 +368,216 @@ authRouter.post("/google", async (req: Request, res: Response): Promise<void> =>
   });
 });
 
+// =========================================================================
+// REAL SMS OTP FORGOT PASSWORD FLOW (Durable SQLite, Normalized Phone, Dual Write)
+// =========================================================================
+
+// Step 1: Request 6-digit verification code via SMS
+authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Promise<void> => {
+  const { phone } = req.body || {};
+  const rawPhone = (phone || "").toString().trim();
+
+  if (!rawPhone) {
+    res.status(400).json({ error: "Please enter your registered phone number." });
+    return;
+  }
+
+  const norm = normalizePhone(rawPhone);
+  if (!norm || norm.length < 7) {
+    res.status(400).json({ error: "Please enter a valid phone number (at least 7 to 10 digits)." });
+    return;
+  }
+
+  // 1. Existence check in Cloud Firestore (the primary live login store)
+  // Checks both phone and phone_cell after canonical normalization
+  let userMatch: any = null;
+  try {
+    userMatch = await findFirestoreUserByPhone(norm);
+  } catch (err: any) {
+    console.warn("Firestore user lookup notice:", err?.message || err);
+  }
+
+  // If not found in Firestore, also check SQLite owners as fallback
+  if (!userMatch) {
+    const owners = queryAll<{ id: number; phone: string | null; phone_cell: string | null }>(
+      "SELECT id, phone, phone_cell FROM owners"
+    );
+    const sqliteOwner = owners.find(
+      (o) => normalizePhone(o.phone) === norm || normalizePhone(o.phone_cell) === norm
+    );
+    if (!sqliteOwner) {
+      res.status(404).json({
+        error: `No registered account found with phone number '${rawPhone}'. Please check the number or sign up.`,
+      });
+      return;
+    }
+  }
+
+  // 2. Enforce Rate Limiting & Cooldowns
+  const rateLimit = checkRateLimit(norm);
+  if (!rateLimit.allowed) {
+    res.status(429).json({
+      error: rateLimit.reason || "Too many OTP requests. Please try again later.",
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+    });
+    return;
+  }
+
+  // 3. Generate 6-digit OTP & store securely in SQLite otp_records (5-min expiry, bcrypt hashed)
+  const { otpCode } = createOtpSession(norm);
+
+  // 4. Dispatch SMS via Twilio/Fast2SMS (or sandbox demo mode if credentials unconfigured)
+  const smsResult = await sendOtpSms(norm, otpCode);
+
+  if (!smsResult.success) {
+    // Delete the un-delivered OTP record so it does not count against rate limits
+    runQuery("DELETE FROM otp_records WHERE phone = ? AND consumed = 0", [norm]);
+    res.status(400).json({
+      error: smsResult.error || "SMS delivery could not be confirmed. Please check SMS gateway settings.",
+      delivered: false,
+      provider: smsResult.provider,
+    });
+    return;
+  }
+
+  // If Twilio trial template generated an OTP in transit, synchronize it into SQLite
+  if (smsResult.realOtpOverride) {
+    updateOtpCode(norm, smsResult.realOtpOverride);
+  }
+
+  const isSandbox = smsResult.provider === "sandbox";
+
+  res.json({
+    success: true,
+    message: isSandbox
+      ? (smsResult.note || `Demo Mode (Twilio credentials not configured): Your 6-digit verification code is ${otpCode}.`)
+      : `A 6-digit verification code has been sent via SMS to ${smsResult.maskedPhone}.`,
+    phone: smsResult.maskedPhone,
+    provider: smsResult.provider,
+    delivered: true,
+    devOtp: isSandbox ? (smsResult.devOtp || otpCode) : undefined,
+    note: smsResult.note,
+  });
+});
+
+// Step 2: Verify 6-digit verification code
+authRouter.post("/verify-sms-otp", async (req: Request, res: Response): Promise<void> => {
+  const { phone, code } = req.body || {};
+  const rawPhone = (phone || "").toString().trim();
+  const rawCode = (code || "").toString().trim();
+
+  if (!rawPhone || !rawCode) {
+    res.status(400).json({ error: "Phone number and 6-digit verification code are required." });
+    return;
+  }
+
+  const norm = normalizePhone(rawPhone);
+  const result = verifyOtp(norm, rawCode);
+
+  if (!result.valid) {
+    res.status(400).json({ error: result.error || "Invalid verification code." });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: "Verification code confirmed successfully. Please set your new password.",
+    verified: true,
+    resetToken: result.resetToken,
+  });
+});
+
+// Step 3: Reset password with verified token (Compensating Dual-Write: Firestore first, then SQLite)
+authRouter.post("/reset-password-with-otp", async (req: Request, res: Response): Promise<void> => {
+  const { phone, resetToken, newPassword } = req.body || {};
+  const rawPhone = (phone || "").toString().trim();
+  const cleanToken = (resetToken || "").toString().trim();
+  const cleanPassword = (newPassword || "").toString().trim();
+
+  if (!rawPhone || !cleanToken || !cleanPassword) {
+    res.status(400).json({ error: "Phone number, reset authorization token, and new password are required." });
+    return;
+  }
+
+  if (cleanPassword.length < 4) {
+    res.status(400).json({ error: "Password must be at least 4 characters long." });
+    return;
+  }
+
+  const norm = normalizePhone(rawPhone);
+
+  // 1. Validate Reset Token (Durable SQLite check)
+  const tokenValidation = validateResetToken(norm, cleanToken);
+  if (!tokenValidation.valid) {
+    res.status(400).json({ error: tokenValidation.error || "Invalid or expired reset session." });
+    return;
+  }
+
+  // 2. Locate Account in Cloud Firestore (Live Primary Store)
+  const firestoreUser = await findFirestoreUserByPhone(norm);
+  const oldFirestoreHash = firestoreUser?.password_hash || "";
+  const newFirestoreHash = hashFirestorePassword(cleanPassword);
+  const newBcryptHash = bcrypt.hashSync(cleanPassword, 10);
+
+  // 3. Step 1 of Dual Write: Write to Cloud Firestore FIRST
+  if (firestoreUser) {
+    try {
+      await updateFirestoreUserPassword(firestoreUser.docId, newFirestoreHash);
+    } catch (fsErr: any) {
+      console.error("Failed to update password in primary Firestore:", fsErr);
+      res.status(500).json({ error: "Failed to update password in primary database. Please try again." });
+      return;
+    }
+  }
+
+  // 4. Step 2 of Dual Write: Write to SQLite owners table
+  try {
+    const owners = queryAll<{ id: number; phone: string | null; phone_cell: string | null; username: string }>(
+      "SELECT id, phone, phone_cell, username FROM owners"
+    );
+    const matchedOwner = owners.find(
+      (o) =>
+        normalizePhone(o.phone) === norm ||
+        normalizePhone(o.phone_cell) === norm ||
+        (firestoreUser?.username && o.username.toLowerCase() === firestoreUser.username.toLowerCase()) ||
+        (firestoreUser?.email && o.username.toLowerCase() === firestoreUser.email.toLowerCase())
+    );
+
+    if (matchedOwner) {
+      if (!matchedOwner.phone) {
+        runQuery("UPDATE owners SET password = ?, phone = ? WHERE id = ?", [newBcryptHash, norm, matchedOwner.id]);
+      } else {
+        runQuery("UPDATE owners SET password = ? WHERE id = ?", [newBcryptHash, matchedOwner.id]);
+      }
+    }
+  } catch (sqliteErr: any) {
+    console.error("SQLite password write failed:", sqliteErr);
+    // Compensating write: Revert Firestore back to old hash so no credentials drift occurs
+    if (firestoreUser && oldFirestoreHash) {
+      try {
+        await revertFirestoreUserPassword(firestoreUser.docId, oldFirestoreHash);
+        console.log(`[Compensating Write] Successfully reverted Firestore user ${firestoreUser.docId} back to previous hash`);
+      } catch (revErr) {
+        console.error("Critical: Failed compensating revert on Firestore:", revErr);
+      }
+    }
+    res.status(500).json({
+      error: "Failed to synchronize password across databases. Change was rolled back. Please try again.",
+    });
+    return;
+  }
+
+  // 5. Invalidate single-use reset token permanently
+  if (tokenValidation.recordId) {
+    consumeResetToken(tokenValidation.recordId);
+  }
+
+  res.json({
+    success: true,
+    message: "Password reset successfully! Please sign in with your new password.",
+  });
+});
+
 // Forgot Password - Step 1: Send 6-digit verification code
 authRouter.post("/forgot-password", (req: Request, res: Response): void => {
   const { email } = req.body;
@@ -679,7 +905,7 @@ authRouter.post("/send-sms", async (req: Request, res: Response): Promise<void> 
     }
   }
 
-  console.log(`[SMS Gateway] Dispatched OTP ${verificationCode} to ${targetPhone} via ${providerUsed}`);
+  console.log(`[SMS Gateway] Dispatched SMS OTP to ${maskPhone(targetPhone)} via ${providerUsed}`);
 
   res.json({
     success: true,
