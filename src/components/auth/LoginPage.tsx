@@ -156,30 +156,34 @@ export const LoginPage: React.FC = () => {
   const handleSendResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const cleanInput = forgotPhone.trim();
-    if (!cleanInput) {
-      setErrorMessage("Please enter your registered phone number, username, or email.");
+    if (!forgotPhone.trim()) {
+      setErrorMessage("Please enter your registered phone number.");
+      return;
+    }
+    const digits = forgotPhone.replace(/\D/g, "");
+    if (digits.length < 7) {
+      setErrorMessage("Please enter a valid registered phone number (at least 7 to 10 digits).");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await api.forgotPassword({ phone: cleanInput, username: cleanInput, email: cleanInput });
-      setTargetPhoneFormatted(res.phone || cleanInput);
+      const res = await api.forgotPassword({ phone: forgotPhone.trim() });
+      setTargetPhoneFormatted(res.phone || forgotPhone);
       setResendCooldown(60);
       if (res.devOtp) {
         setDemoCode(res.devOtp);
         setForgotCode(res.devOtp);
-        setSmsNotice(res.note || "A demo verification code has been auto-filled below for instant access.");
-        toastSuccess(`Verification Code: ${res.devOtp} (Auto-filled)`);
+        setSmsNotice(res.note || "Twilio SMS credentials are not configured in settings. A demo verification code has been auto-filled below.");
+        toastSuccess(`Demo Verification Code: ${res.devOtp} (Auto-filled)`);
       } else {
         setDemoCode(null);
         setSmsNotice(null);
-        toastSuccess(`6-digit verification code sent to ${res.phone || cleanInput}!`);
+        toastSuccess(`6-digit verification code sent via SMS to ${res.phone || forgotPhone}!`);
       }
       setMode("forgot_code");
     } catch (err: any) {
-      const msg = err.message || "No registered account found with these details.";
+      const msg = err.message || "No registered account found with this phone number.";
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -201,11 +205,8 @@ export const LoginPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      const cleanInput = forgotPhone.trim();
       const res = await api.verifyResetCode({
-        phone: cleanInput,
-        username: cleanInput,
-        email: cleanInput,
+        phone: forgotPhone.trim(),
         code: forgotCode.trim(),
       });
       if (res.resetToken) {
@@ -214,7 +215,7 @@ export const LoginPage: React.FC = () => {
       toastSuccess("Verification code verified! Please set your new password.");
       setMode("forgot_newpass");
     } catch (err: any) {
-      const msg = err.message || "Invalid verification code. Please check and try again.";
+      const msg = err.message || "Invalid verification code. Please check your SMS and try again.";
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -231,19 +232,18 @@ export const LoginPage: React.FC = () => {
     setErrorMessage(null);
     setLoading(true);
     try {
-      const cleanInput = forgotPhone.trim();
-      const res = await api.forgotPassword({ phone: cleanInput, username: cleanInput, email: cleanInput });
-      setTargetPhoneFormatted(res.phone || cleanInput);
+      const res = await api.forgotPassword({ phone: forgotPhone.trim() });
+      setTargetPhoneFormatted(res.phone || forgotPhone);
       setResendCooldown(60);
       if (res.devOtp) {
         setDemoCode(res.devOtp);
         setForgotCode(res.devOtp);
-        setSmsNotice(res.note || "A demo verification code has been auto-filled below.");
-        toastSuccess(`New Verification Code: ${res.devOtp}`);
+        setSmsNotice(res.note || "Twilio SMS credentials are not configured in settings. A new demo verification code has been auto-filled below.");
+        toastSuccess(`New Demo Verification Code: ${res.devOtp}`);
       } else {
         setDemoCode(null);
         setSmsNotice(null);
-        toastSuccess(`New 6-digit verification code sent to ${res.phone || cleanInput}.`);
+        toastSuccess(`New 6-digit verification code sent via SMS to ${res.phone || forgotPhone}.`);
       }
     } catch (err: any) {
       toastError(err.message || "Failed to resend verification code.");
@@ -271,11 +271,8 @@ export const LoginPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      const cleanInput = forgotPhone.trim();
       await api.resetPassword({
-        phone: cleanInput,
-        username: cleanInput,
-        email: cleanInput,
+        phone: forgotPhone.trim(),
         resetToken: resetToken || undefined,
         code: forgotCode.trim(),
         newPassword: newPassword.trim(),
@@ -638,14 +635,14 @@ export const LoginPage: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white tracking-tight">Forgot Password</h3>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Enter your registered mobile phone number, username, or email to verify and reset your password
+                  Enter your registered mobile phone number (e.g. 9363645124) to verify and reset your password
                 </p>
               </div>
 
               <form onSubmit={handleSendResetCode} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                    Registered Mobile Number, Username, or Email
+                    Registered Phone Number
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
@@ -653,11 +650,11 @@ export const LoginPage: React.FC = () => {
                     </div>
                     <input
                       id="forgot-phone-input"
-                      type="text"
+                      type="tel"
                       required
                       value={forgotPhone}
                       onChange={(e) => setForgotPhone(e.target.value)}
-                      placeholder="e.g. 9894903533 or admin or email"
+                      placeholder="e.g. 9894903533"
                       className="w-full pl-9 pr-3 py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                   </div>
@@ -712,15 +709,13 @@ export const LoginPage: React.FC = () => {
                     <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <p className="text-white font-medium text-xs">
-                          {smsNotice?.toLowerCase().includes("trial") ? "Twilio Trial Mode" : "Verification Code Notice"}
-                        </p>
+                        <p className="text-white font-medium text-xs">Sandbox Mode (Twilio Unconfigured)</p>
                         <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold">
-                          Verification Code
+                          Demo OTP
                         </span>
                       </div>
                       <p className="text-zinc-300 text-[11px] leading-relaxed">
-                        {smsNotice || "A 6-digit verification code has been generated and auto-filled below for immediate access:"}
+                        Twilio credentials (Account SID starting with &apos;AC&apos;) are not configured in settings. A demo verification code has been generated and auto-filled below for immediate access:
                       </p>
                       <div className="flex items-center gap-2 pt-1">
                         <span className="font-mono text-base font-bold text-amber-200 bg-amber-900/60 px-2.5 py-1 rounded border border-amber-600/40 tracking-wider">

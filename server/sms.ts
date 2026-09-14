@@ -142,48 +142,29 @@ export async function sendViaTwilio(rawPhone: string, otpCode: string): Promise<
         };
       } else {
         const trialErr = trialJson?.message || `HTTP ${trialRes.status}`;
-        console.log(`[SMS Gateway] Twilio trial template notice: ${trialErr}`);
+        console.warn(`[SMS Gateway] Twilio trial template dispatch failed: ${trialErr}`);
       }
-    }
-
-    const isTrialRecipientRestriction =
-      twilioJson?.code === 572002 ||
-      twilioJson?.code === 21608 ||
-      (twilioJson?.message && twilioJson.message.toLowerCase().includes("trial")) ||
-      (twilioJson?.message && twilioJson.message.toLowerCase().includes("verified recipient"));
-
-    if (isTrialRecipientRestriction) {
-      console.log(
-        `[SMS Gateway] Twilio trial account notice for ${masked}: recipient is not on Twilio's verified caller IDs list (Code: ${twilioJson?.code || 572002}). Auto-providing verification code.`
-      );
-      return {
-        success: true,
-        provider: "sandbox",
-        maskedPhone: masked,
-        devOtp: otpCode,
-        note: `Twilio Trial Notice: Recipient number is not yet added to Twilio's Verified Caller IDs list. Verification code ${otpCode} has been auto-provided below for instant access.`,
-      };
     }
 
     const errDetail = twilioJson?.message || `HTTP ${twilioRes.status}`;
     const errCode = twilioJson?.code ? ` (Twilio Code: ${twilioJson.code})` : "";
-    console.log(`[SMS Gateway] Twilio carrier dispatch notice for ${masked}: ${errDetail}${errCode}. Using verification code fallback.`);
+    console.warn(`[SMS Gateway] Twilio dispatch failed for ${masked}: ${errDetail}${errCode}`);
     // Fall back to sandbox mode with demo OTP so user workflow is uninterrupted
     return {
       success: true,
       provider: "sandbox",
       maskedPhone: masked,
       devOtp: otpCode,
-      note: `SMS Gateway Notice: ${errDetail}. Verification code ${otpCode} has been auto-provided below for access.`,
+      note: `Twilio delivery notice: ${errDetail}. Using demo verification code for access.`,
     };
   } catch (err: any) {
-    console.log(`[SMS Gateway] Twilio connection notice for ${masked}: ${err?.message || "connection unavailable"}. Using verification code fallback.`);
+    console.warn(`[SMS Gateway] Twilio connection notice for ${masked}: ${err?.message || "connection failed"}`);
     return {
       success: true,
       provider: "sandbox",
       maskedPhone: masked,
       devOtp: otpCode,
-      note: "SMS carrier service unavailable. Verification code has been auto-provided below for access.",
+      note: "Could not connect to SMS carrier gateway. Using demo verification code for access.",
     };
   }
 }
