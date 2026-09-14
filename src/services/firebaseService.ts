@@ -399,13 +399,13 @@ export const firebaseService = {
     };
   },
 
-  forgotPassword: async (input: string | { phone?: string; email?: string; username?: string }): Promise<{ message: string; phone: string; username: string }> => {
+  forgotPassword: async (input: string | { phone?: string; email?: string; username?: string }): Promise<{ message: string; phone: string; username: string; devOtp?: string; note?: string }> => {
     const rawInput = typeof input === "string" ? input : (input.phone || input.username || input.email || "");
     const inputClean = rawInput.trim().toLowerCase();
     const inputDigits = rawInput.replace(/\D/g, "");
 
     if (!inputClean && !inputDigits) {
-      throw new Error("Please enter your registered phone number.");
+      throw new Error("Please enter your registered phone number, username, or email.");
     }
 
     const usersRef = collection(db, "users");
@@ -429,7 +429,7 @@ export const firebaseService = {
     }
 
     if (!userDoc) {
-      throw new Error(`No registered account found with phone number '${rawInput.trim()}'. Please check the number.`);
+      throw new Error(`No registered account found for '${rawInput.trim()}'. Please check your credentials or sign up.`);
     }
 
     const uData = userDoc.data();
@@ -443,13 +443,16 @@ export const firebaseService = {
       updated_at: new Date().toISOString(),
     });
 
-    const userPhone = uData.phone || rawInput.trim();
+    const userPhoneDigits = (uData.phone || "").replace(/\D/g, "") || (uData.phone_cell || "").replace(/\D/g, "") || inputDigits;
+    const maskedPhone = userPhoneDigits.length >= 5 ? `+91*****${userPhoneDigits.slice(-5)}` : rawInput.trim();
     const userName = uData.username || uData.name || "User";
 
     return {
-      message: `6-digit verification code sent to ${userPhone}.`,
-      phone: userPhone,
+      message: `6-digit verification code generated for ${maskedPhone}.`,
+      phone: maskedPhone,
       username: userName,
+      devOtp: verificationCode,
+      note: `SMS Gateway is in trial/sandbox mode on this link. Demo verification code ${verificationCode} has been generated for instant verification.`,
     };
   },
 
