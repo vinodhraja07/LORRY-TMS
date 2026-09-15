@@ -1,12 +1,14 @@
 -- Lorry Transport Management System Database Dump
--- Generated at: 2026-09-14T15:42:57.803Z
+-- Generated at: 2026-09-15T04:17:50.933Z
 -- Target Files: lorry_transport.sqlite | lorry_transport.sqlite.bak
 
 PRAGMA foreign_keys = ON;
 
--- Table: owners (2 records)
+-- Table: owners (4 records)
 INSERT OR REPLACE INTO owners (id, username, password, name, company_name, phone, address, proprietor_name, phone_cell, devotional_line1, devotional_line2, vessel_name_default, gstin, memo_prefix, memo_next_no, deity_icon_left, deity_icon_right, created_at) VALUES (1, 'vinodhraja2007@gmail.com', '$2b$10$0ZMLYZI0bwogaXV9AaOUUOb0NfzxIed5TyIpg8BDEbJ3bj0mrtl06', 'Vinodh Raja', 'Sri Transport', NULL, NULL, NULL, NULL, 'குருவே சரணம்', 'ஸ்ரீ பூலுடையார் சாஸ்தா துணை', NULL, NULL, 'No. ', 787, 'shiva', 'venkateswara', '2026-08-27 07:01:40');
 INSERT OR REPLACE INTO owners (id, username, password, name, company_name, phone, address, proprietor_name, phone_cell, devotional_line1, devotional_line2, vessel_name_default, gstin, memo_prefix, memo_next_no, deity_icon_left, deity_icon_right, created_at) VALUES (2, 'testotp@gmail.com', '$2b$10$d5E0DCr94rhG6yZ/Ov82VelmUjSZhtjxw/sITsEUnwN.68orgY1d2', 'Test Driver', 'Test Transport', NULL, NULL, NULL, NULL, 'குருவே சரணம்', 'ஸ்ரீ பூலுடையார் சாஸ்தா துணை', NULL, NULL, 'No. ', 787, 'shiva', 'venkateswara', '2026-09-12 05:13:20');
+INSERT OR REPLACE INTO owners (id, username, password, name, company_name, phone, address, proprietor_name, phone_cell, devotional_line1, devotional_line2, vessel_name_default, gstin, memo_prefix, memo_next_no, deity_icon_left, deity_icon_right, created_at) VALUES (3, 'testfleet@example.com', '$2b$10$ZMLrtTSOnVbQMiSv3YjbguwY.OBDwMDwFapxAh0MPXW6CLxASIdRS', 'Test User', 'Test Logistics', NULL, NULL, NULL, NULL, 'குருவே சரணம்', 'ஸ்ரீ பூலுடையார் சாஸ்தா துணை', NULL, NULL, 'No. ', 787, 'shiva', 'venkateswara', '2026-09-15 04:16:50');
+INSERT OR REPLACE INTO owners (id, username, password, name, company_name, phone, address, proprietor_name, phone_cell, devotional_line1, devotional_line2, vessel_name_default, gstin, memo_prefix, memo_next_no, deity_icon_left, deity_icon_right, created_at) VALUES (4, 'speedy@fleet.com', '$2b$10$7YltuXwfvpcHUPT8fesxgeSDbTcEtO4gBm38eQN2Tl0Lre3jFugTq', 'Fleet Owner', 'Speedy Transport', '919876543210', NULL, NULL, NULL, 'குருவே சரணம்', 'ஸ்ரீ பூலுடையார் சாஸ்தா துணை', NULL, NULL, 'No. ', 787, 'shiva', 'venkateswara', '2026-09-15 04:17:31');
 
 -- Table: lorries (4 records)
 INSERT OR REPLACE INTO lorries (id, owner_id, vehicle_number, vehicle_type, capacity, insurance_expiry, fc_expiry, permit_expiry, pollution_expiry, status, notes, created_at, updated_at) VALUES (1, 1, 'TN69BD2799', '14-wheeler tipper', 50, '2026-09-04', '2026-08-29', '2026-09-03', '2026-09-01', 'Available', '', '2026-08-27 07:02:27', '2026-08-27 07:02:27');

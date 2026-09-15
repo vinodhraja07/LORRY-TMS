@@ -405,7 +405,7 @@ export const firebaseService = {
     const inputDigits = rawInput.replace(/\D/g, "");
 
     if (!inputClean && !inputDigits) {
-      throw new Error("Please enter your registered phone number.");
+      throw new Error("Invalid mobile number. Please enter your registered mobile number.");
     }
 
     const usersRef = collection(db, "users");
@@ -429,7 +429,7 @@ export const firebaseService = {
     }
 
     if (!userDoc) {
-      throw new Error(`No registered account found with phone number '${rawInput.trim()}'. Please check the number.`);
+      throw new Error("Invalid mobile number. Please enter your registered mobile number.");
     }
 
     const uData = userDoc.data();

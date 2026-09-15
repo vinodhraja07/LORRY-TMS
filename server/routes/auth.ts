@@ -184,12 +184,13 @@ authRouter.post("/login", (req: Request, res: Response): void => {
   });
 });
 
-// Register new owner account (Requires: Owner Full Name, Transport Name, Email, Password)
+// Register new owner account (Requires: Owner Full Name, Transport Name, Email, Password, Optional Phone)
 authRouter.post("/register", async (req: Request, res: Response): Promise<void> => {
-  const { username, email, password, name, company_name } = req.body;
+  const { username, email, password, name, company_name, phone } = req.body;
   const userEmail = (email || username || "").toString().trim().toLowerCase();
   const ownerName = (name || "").toString().trim();
   const transportName = (company_name || "").toString().trim();
+  const userPhone = (phone || "").toString().trim() || null;
 
   if (!ownerName) {
     res.status(400).json({ error: "Owner Full Name is required." });
@@ -229,7 +230,7 @@ authRouter.post("/register", async (req: Request, res: Response): Promise<void> 
       hashedPassword,
       ownerName,
       transportName,
-      null,
+      userPhone,
     ]
   );
 
@@ -378,13 +379,13 @@ authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Pro
   const rawPhone = (phone || "").toString().trim();
 
   if (!rawPhone) {
-    res.status(400).json({ error: "Please enter your registered phone number." });
+    res.status(400).json({ error: "Invalid mobile number. Please enter your registered mobile number." });
     return;
   }
 
   const norm = normalizePhone(rawPhone);
   if (!norm || norm.length < 7) {
-    res.status(400).json({ error: "Please enter a valid phone number (at least 7 to 10 digits)." });
+    res.status(400).json({ error: "Invalid mobile number. Please enter your registered mobile number." });
     return;
   }
 
@@ -407,7 +408,7 @@ authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Pro
     );
     if (!sqliteOwner) {
       res.status(404).json({
-        error: `No registered account found with phone number '${rawPhone}'. Please check the number or sign up.`,
+        error: "Invalid mobile number. Please enter your registered mobile number.",
       });
       return;
     }

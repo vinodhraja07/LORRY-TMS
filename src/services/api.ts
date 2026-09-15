@@ -20,6 +20,24 @@ import {
 export { getStoredToken, setStoredToken, removeStoredToken, getStoredUser, setStoredUser };
 
 /**
+ * Safely extracts a string message from error payloads, preventing '[object Object]'
+ */
+function extractStringFromPayload(payload: any): string | null {
+  if (!payload) return null;
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    return trimmed && trimmed !== "[object Object]" ? trimmed : null;
+  }
+  if (typeof payload === "object") {
+    if (typeof payload.error === "string") return extractStringFromPayload(payload.error);
+    if (typeof payload.message === "string") return extractStringFromPayload(payload.message);
+    if (payload.error && typeof payload.error === "object") return extractStringFromPayload(payload.error);
+    if (payload.message && typeof payload.message === "object") return extractStringFromPayload(payload.message);
+  }
+  return null;
+}
+
+/**
  * Robust JSON fetch wrapper that gracefully handles HTML error pages,
  * server cold-starts, and network disconnects without throwing
  * "Unexpected token '<', '<!doctype '... is not valid JSON".
@@ -70,8 +88,14 @@ async function safeFetchJson<T = any>(url: string, options?: RequestInit): Promi
   }
 
   if (!res.ok) {
+    const extracted =
+      extractStringFromPayload(data?.error) ||
+      extractStringFromPayload(data?.message) ||
+      extractStringFromPayload(data);
     const errorMsg =
-      data?.error || data?.message || `Request failed with status ${res.status} (${res.statusText || "Error"})`;
+      extracted && extracted !== "[object Object]"
+        ? extracted
+        : `Request failed with status ${res.status} (${res.statusText || "Error"})`;
     throw new Error(errorMsg);
   }
 

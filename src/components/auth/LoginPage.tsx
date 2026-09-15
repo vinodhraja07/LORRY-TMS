@@ -23,6 +23,60 @@ import {
 
 type AuthMode = "signin" | "signup" | "forgot_phone" | "forgot_code" | "forgot_newpass";
 
+/**
+ * Safely extracts a clean string error message from any error or exception,
+ * ensuring [object Object] is never displayed to the user.
+ */
+function extractErrorMessage(
+  err: unknown,
+  fallback: string = "Something went wrong. Please try again."
+): string {
+  if (!err) return fallback;
+
+  if (typeof err === "string") {
+    const trimmed = err.trim();
+    return trimmed && trimmed !== "[object Object]" ? trimmed : fallback;
+  }
+
+  const anyErr = err as any;
+
+  if (typeof anyErr.message === "string") {
+    const msg = anyErr.message.trim();
+    if (msg && msg !== "[object Object]") return msg;
+  }
+
+  if (typeof anyErr.error === "string") {
+    const errStr = anyErr.error.trim();
+    if (errStr && errStr !== "[object Object]") return errStr;
+  }
+
+  if (anyErr.error && typeof anyErr.error === "object") {
+    if (typeof anyErr.error.message === "string" && anyErr.error.message !== "[object Object]") {
+      return anyErr.error.message.trim();
+    }
+    if (typeof anyErr.error.error === "string" && anyErr.error.error !== "[object Object]") {
+      return anyErr.error.error.trim();
+    }
+  }
+
+  if (anyErr.data) {
+    if (typeof anyErr.data.error === "string" && anyErr.data.error !== "[object Object]") {
+      return anyErr.data.error.trim();
+    }
+    if (typeof anyErr.data.message === "string" && anyErr.data.message !== "[object Object]") {
+      return anyErr.data.message.trim();
+    }
+  }
+
+  if (anyErr.response?.data) {
+    const d = anyErr.response.data;
+    if (typeof d.error === "string" && d.error !== "[object Object]") return d.error.trim();
+    if (typeof d.message === "string" && d.message !== "[object Object]") return d.message.trim();
+  }
+
+  return fallback;
+}
+
 export const LoginPage: React.FC = () => {
   const { login, register } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
@@ -84,7 +138,7 @@ export const LoginPage: React.FC = () => {
       await login({ username: loginUsername.trim(), password: loginPassword.trim() });
       toastSuccess("Welcome back to your Transport Dashboard!");
     } catch (err: any) {
-      const msg = err.message || "Invalid username or password.";
+      const msg = extractErrorMessage(err, "Invalid username or password.");
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -144,7 +198,7 @@ export const LoginPage: React.FC = () => {
       setSuccessBanner(successMsg);
       toastSuccess(successMsg);
     } catch (err: any) {
-      const msg = err.message || "Registration failed. Please try again.";
+      const msg = extractErrorMessage(err, "Registration failed. Please try again.");
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -183,7 +237,7 @@ export const LoginPage: React.FC = () => {
       }
       setMode("forgot_code");
     } catch (err: any) {
-      const msg = err.message || "No registered account found with this phone number.";
+      const msg = extractErrorMessage(err, "Invalid mobile number. Please enter your registered mobile number.");
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -215,7 +269,7 @@ export const LoginPage: React.FC = () => {
       toastSuccess("Verification code verified! Please set your new password.");
       setMode("forgot_newpass");
     } catch (err: any) {
-      const msg = err.message || "Invalid verification code. Please check your SMS and try again.";
+      const msg = extractErrorMessage(err, "Invalid verification code. Please check your SMS and try again.");
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -246,7 +300,8 @@ export const LoginPage: React.FC = () => {
         toastSuccess(`New 6-digit verification code sent via SMS to ${res.phone || forgotPhone}.`);
       }
     } catch (err: any) {
-      toastError(err.message || "Failed to resend verification code.");
+      const msg = extractErrorMessage(err, "Failed to resend verification code.");
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -286,7 +341,7 @@ export const LoginPage: React.FC = () => {
       setForgotCode("");
       setMode("signin");
     } catch (err: any) {
-      const msg = err.message || "Failed to reset password. Please restart the reset process.";
+      const msg = extractErrorMessage(err, "Failed to reset password. Please restart the reset process.");
       setErrorMessage(msg);
       toastError(msg);
     } finally {
@@ -329,7 +384,11 @@ export const LoginPage: React.FC = () => {
           {errorMessage && (
             <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 text-xs flex items-start gap-2.5 shadow-sm animate-fade-in">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium">{errorMessage}</div>
+              <div className="flex-1 font-medium">
+                {typeof errorMessage === "string" && errorMessage !== "[object Object]"
+                  ? errorMessage
+                  : extractErrorMessage(errorMessage, "Invalid mobile number. Please enter your registered mobile number.")}
+              </div>
             </div>
           )}
 

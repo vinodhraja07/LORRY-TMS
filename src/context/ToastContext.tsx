@@ -30,8 +30,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const showToast = useCallback(
     (message: string, type: ToastType = "info", title?: string) => {
+      let cleanMessage = "Notification";
+      if (typeof message === "string") {
+        cleanMessage = message.trim();
+      } else if (message && typeof message === "object") {
+        cleanMessage = (message as any).message || (message as any).error || "Notification";
+      }
+      if (!cleanMessage || cleanMessage === "[object Object]") {
+        cleanMessage = type === "error" ? "An error occurred. Please try again." : "Notification";
+      }
+
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newToast: ToastItem = { id, message, type, title };
+      const newToast: ToastItem = { id, message: cleanMessage, type, title };
       setToasts((prev) => [...prev, newToast]);
 
       // Auto dismiss after 4.5 seconds
