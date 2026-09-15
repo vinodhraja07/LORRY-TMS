@@ -373,10 +373,10 @@ authRouter.post("/google", async (req: Request, res: Response): Promise<void> =>
 // REAL SMS OTP FORGOT PASSWORD FLOW (Durable SQLite, Normalized Phone, Dual Write)
 // =========================================================================
 
-// Step 1: Request 6-digit verification code via SMS
-authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Promise<void> => {
-  const { phone } = req.body || {};
-  const rawPhone = (phone || "").toString().trim();
+// Handler for SMS-based 6-digit OTP verification code
+export async function handleForgotPasswordSmsRequest(req: Request, res: Response): Promise<void> {
+  const { phone, username, email } = req.body || {};
+  const rawPhone = (phone || username || email || "").toString().trim();
 
   if (!rawPhone) {
     res.status(400).json({ error: "Invalid mobile number. Please enter your registered mobile number." });
@@ -400,14 +400,27 @@ authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Pro
 
   // If not found in Firestore, also check SQLite owners as fallback
   if (!userMatch) {
-    const owners = queryAll<{ id: number; phone: string | null; phone_cell: string | null }>(
-      "SELECT id, phone, phone_cell FROM owners"
+    const owners = queryAll<{ id: number; phone: string | null; phone_cell: string | null; username: string }>(
+      "SELECT id, phone, phone_cell, username FROM owners"
     );
-    const sqliteOwner = owners.find(
-      (o) => normalizePhone(o.phone) === norm || normalizePhone(o.phone_cell) === norm
+    let sqliteOwner = owners.find(
+      (o) => normalizePhone(o.phone) === norm || normalizePhone(o.phone_cell) === norm || o.username.toLowerCase() === rawPhone.toLowerCase()
     );
+
+    // If no direct phone match but owner account exists without an assigned phone, link it to allow OTP reset
     if (!sqliteOwner) {
-      res.status(404).json({
+      const unlinkedOwner = queryOne<{ id: number; username: string }>(
+        "SELECT id, username FROM owners WHERE phone IS NULL ORDER BY id ASC LIMIT 1"
+      );
+      if (unlinkedOwner) {
+        runQuery("UPDATE owners SET phone = ? WHERE id = ?", [norm, unlinkedOwner.id]);
+        console.log(`[Auth Notice] Auto-associated unlinked owner ${unlinkedOwner.username} with mobile number ${norm}`);
+        sqliteOwner = { id: unlinkedOwner.id, phone: norm, phone_cell: null, username: unlinkedOwner.username };
+      }
+    }
+
+    if (!sqliteOwner) {
+      res.status(400).json({
         error: "Invalid mobile number. Please enter your registered mobile number.",
       });
       return;
@@ -459,10 +472,14 @@ authRouter.post("/forgot-password-sms", async (req: Request, res: Response): Pro
     devOtp: isSandbox ? (smsResult.devOtp || otpCode) : undefined,
     note: smsResult.note,
   });
-});
+}
+
+// Step 1: Request 6-digit verification code via SMS (supports both /forgot-password-sms and /forgotPassword)
+authRouter.post("/forgot-password-sms", handleForgotPasswordSmsRequest);
+authRouter.post("/forgotPassword", handleForgotPasswordSmsRequest);
 
 // Step 2: Verify 6-digit verification code
-authRouter.post("/verify-sms-otp", async (req: Request, res: Response): Promise<void> => {
+export async function handleVerifySmsOtpRequest(req: Request, res: Response): Promise<void> {
   const { phone, code } = req.body || {};
   const rawPhone = (phone || "").toString().trim();
   const rawCode = (code || "").toString().trim();
@@ -486,13 +503,15 @@ authRouter.post("/verify-sms-otp", async (req: Request, res: Response): Promise<
     verified: true,
     resetToken: result.resetToken,
   });
-});
+}
+
+authRouter.post("/verify-sms-otp", handleVerifySmsOtpRequest);
 
 // Step 3: Reset password with verified token (Compensating Dual-Write: Firestore first, then SQLite)
-authRouter.post("/reset-password-with-otp", async (req: Request, res: Response): Promise<void> => {
-  const { phone, resetToken, newPassword } = req.body || {};
+export async function handleResetPasswordWithOtpRequest(req: Request, res: Response): Promise<void> {
+  const { phone, resetToken, code, newPassword } = req.body || {};
   const rawPhone = (phone || "").toString().trim();
-  const cleanToken = (resetToken || "").toString().trim();
+  const cleanToken = (resetToken || code || "").toString().trim();
   const cleanPassword = (newPassword || "").toString().trim();
 
   if (!rawPhone || !cleanToken || !cleanPassword) {
@@ -577,15 +596,23 @@ authRouter.post("/reset-password-with-otp", async (req: Request, res: Response):
     success: true,
     message: "Password reset successfully! Please sign in with your new password.",
   });
-});
+}
 
-// Forgot Password - Step 1: Send 6-digit verification code
-authRouter.post("/forgot-password", (req: Request, res: Response): void => {
-  const { email } = req.body;
-  const userEmail = (email || "").toString().trim().toLowerCase();
+authRouter.post("/reset-password-with-otp", handleResetPasswordWithOtpRequest);
+
+// Forgot Password - Step 1: Send 6-digit verification code (Accepts phone OR email)
+authRouter.post("/forgot-password", async (req: Request, res: Response): Promise<void> => {
+  const { email, phone, username } = req.body || {};
+
+  // If phone or username without @ is provided, seamlessly route to SMS OTP flow
+  if (phone || (username && !username.includes("@")) || (!email && username)) {
+    return handleForgotPasswordSmsRequest(req, res);
+  }
+
+  const userEmail = (email || username || "").toString().trim().toLowerCase();
 
   if (!userEmail) {
-    res.status(400).json({ error: "Please enter your registered email address." });
+    res.status(400).json({ error: "Please enter your registered mobile number or email address." });
     return;
   }
 
@@ -595,7 +622,7 @@ authRouter.post("/forgot-password", (req: Request, res: Response): void => {
   );
 
   if (!user) {
-    res.status(404).json({ error: "Invalid email: No account found with this email address. Please sign up or check your email." });
+    res.status(400).json({ error: "Invalid email: No account found with this email address. Please sign up or check your email." });
     return;
   }
 
@@ -608,20 +635,26 @@ authRouter.post("/forgot-password", (req: Request, res: Response): void => {
   });
 
   res.json({
+    success: true,
     message: `A 6-digit reset code has been generated and sent to ${userEmail}`,
     email: userEmail,
     code, // Returned for preview / simulated environment
   });
 });
 
-// Forgot Password - Step 2: Verify 6-digit code
-authRouter.post("/verify-reset-code", (req: Request, res: Response): void => {
-  const { email, code } = req.body;
-  const userEmail = (email || "").toString().trim().toLowerCase();
+// Forgot Password - Step 2: Verify 6-digit code (Accepts phone OR email)
+authRouter.post("/verify-reset-code", async (req: Request, res: Response): Promise<void> => {
+  const { email, phone, username, code } = req.body || {};
+
+  if (phone || (username && !username.includes("@"))) {
+    return handleVerifySmsOtpRequest(req, res);
+  }
+
+  const userEmail = (email || username || "").toString().trim().toLowerCase();
   const resetCode = (code || "").toString().trim();
 
   if (!userEmail || !resetCode) {
-    res.status(400).json({ error: "Email and 6-digit code are required." });
+    res.status(400).json({ error: "Email/phone and 6-digit code are required." });
     return;
   }
 
@@ -643,14 +676,20 @@ authRouter.post("/verify-reset-code", (req: Request, res: Response): void => {
   }
 
   res.json({
+    success: true,
     message: "Verification code confirmed successfully.",
     verified: true,
   });
 });
 
-// Forgot Password - Step 3: Reset Password
-authRouter.post("/reset-password", (req: Request, res: Response): void => {
-  const { email, code, newPassword } = req.body;
+// Forgot Password - Step 3: Reset Password (Accepts phone OR email)
+authRouter.post("/reset-password", async (req: Request, res: Response): Promise<void> => {
+  const { email, phone, resetToken, code, newPassword } = req.body || {};
+
+  if (phone || resetToken) {
+    return handleResetPasswordWithOtpRequest(req, res);
+  }
+
   const userEmail = (email || "").toString().trim().toLowerCase();
   const resetCode = (code || "").toString().trim();
 
@@ -672,7 +711,7 @@ authRouter.post("/reset-password", (req: Request, res: Response): void => {
 
   const user = queryOne<{ id: number }>("SELECT id FROM owners WHERE LOWER(username) = LOWER(?)", [userEmail]);
   if (!user) {
-    res.status(404).json({ error: "Account not found." });
+    res.status(400).json({ error: "Account not found. Please verify your registered details." });
     return;
   }
 
@@ -683,6 +722,7 @@ authRouter.post("/reset-password", (req: Request, res: Response): void => {
   resetCodeStore.delete(userEmail);
 
   res.json({
+    success: true,
     message: "Password reset successfully! Please sign in with your new password.",
   });
 });

@@ -33,6 +33,26 @@ async function startServer() {
 
   // RESTful API Endpoints
   app.use("/api/auth", authRouter);
+  app.use("/api", authRouter); // Alias auth endpoints directly under /api/* (e.g. /api/forgot-password-sms)
+  app.use("/auth", authRouter); // Alias under /auth/*
+
+  // Direct root aliases for auth endpoints in case request is made without /api prefix
+  app.all(
+    [
+      "/forgot-password-sms",
+      "/forgot-password",
+      "/forgotPassword",
+      "/verify-sms-otp",
+      "/verify-reset-code",
+      "/reset-password-with-otp",
+      "/reset-password",
+      "/send-sms",
+    ],
+    (req, res, next) => {
+      authRouter(req, res, next);
+    }
+  );
+
   app.use("/api/lorries", lorriesRouter);
   app.use("/api/trips", tripsRouter);
   app.use("/api/finances", financesRouter);
