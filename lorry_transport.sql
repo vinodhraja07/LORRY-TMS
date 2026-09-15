@@ -1,5 +1,5 @@
 -- Lorry Transport Management System Database Dump
--- Generated at: 2026-09-15T04:28:44.449Z
+-- Generated at: 2026-09-15T05:03:58.473Z
 -- Target Files: lorry_transport.sqlite | lorry_transport.sqlite.bak
 
 PRAGMA foreign_keys = ON;
